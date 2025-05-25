@@ -3,7 +3,6 @@
     <div class="cart-container">
       <!-- Header -->
       <div class="header">
-        <button class="back-btn" @click="goBack">←</button>
         <h2>Keranjang</h2>
       </div>
 
@@ -39,9 +38,6 @@
           <div class="order-details">
             <h3 class="order-title">{{ order.name || 'No Name' }}</h3>
             <p class="order-price">Rp {{ order.price || '-' }}</p>
-            <p class="order-date">
-              {{ formatDate(order.completedAt) }}
-            </p>
           </div>
         </div>
       </div>
@@ -136,9 +132,9 @@ export default defineComponent({
 }
 
 .cart-container {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 32px auto;
-  padding: 0 24px 32px 24px;
+  padding: 0 48px 48px 48px;
   width: 100%;
   box-sizing: border-box;
   background: #fff;
@@ -149,20 +145,11 @@ export default defineComponent({
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
+  justify-content: center;
+  margin-bottom: 32px;
   background: #fff;
   border-radius: 16px 16px 0 0;
-  padding: 24px 0 0 0;
-}
-
-.back-btn {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  padding: 8px;
-  margin-right: 16px;
+  padding: 32px 0 0 0;
 }
 
 h2 {
@@ -253,11 +240,5 @@ h2 {
   margin: 0 0 4px 0;
   color: #444;
   font-size: 14px;
-}
-
-.order-date {
-  margin: 0;
-  color: #888;
-  font-size: 12px;
 }
 </style>
