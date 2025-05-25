@@ -7,7 +7,9 @@ import { onAuthStateChanged } from 'firebase/auth'
 const isLoading = ref(true)
 
 onMounted(() => {
-  onAuthStateChanged(auth, () => {
+  console.log('App mounted, checking auth state...')
+  onAuthStateChanged(auth, (user) => {
+    console.log('Auth state changed:', user ? 'User logged in' : 'No user')
     isLoading.value = false
   })
 })

@@ -3,19 +3,19 @@
     <img src="/barbek2.png" alt="Logo" class="logo" />
 
     <div class="form-group">
-      <input v-model="username" type="text" placeholder="Username" />
+      <input v-model="email" type="email" placeholder="Email" />
     </div>
 
     <div class="form-group password-group">
       <input :type="showPassword ? 'text' : 'password'" v-model="password" placeholder="Password" />
-      <span class="toggle" @click="showPassword = !showPassword">{{
+      <span class="toggle" @click="togglePassword">{{
         showPassword ? 'Hide' : 'Show'
       }}</span>
     </div>
 
-    <p class="error" v-if="error">{{ error }}</p>
+    <p class="error" v-if="errorMessage">{{ errorMessage }}</p>
 
-    <button class="signin-btn" @click="submitSignin" :disabled="isLoading">
+    <button class="signin-btn" @click="handleSignin" :disabled="isLoading">
       <span v-if="isLoading" class="spinner"></span>
       <span v-else>Login</span>
     </button>
@@ -24,65 +24,65 @@
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
+import { ref } from 'vue'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { FirebaseError } from 'firebase/app'
 import { auth } from '../firebase'
 import { useRouter } from 'vue-router'
 
-export default {
-  name: 'SignInForm',
-  setup() {
-    const router = useRouter()
-    return { router }
-  },
-  data() {
-    return {
-      username: '',
-      password: '',
-      error: '',
-      isLoading: false,
-      showPassword: false,
+const router = useRouter()
+const email = ref('')
+const password = ref('')
+const errorMessage = ref('')
+const isLoading = ref(false)
+const showPassword = ref(false)
+
+const togglePassword = () => {
+  showPassword.value = !showPassword.value
+}
+
+const handleSignin = async () => {
+  errorMessage.value = ''
+
+  if (!email.value || !password.value) {
+    errorMessage.value = 'Email dan password wajib diisi.'
+    return
+  }
+
+  isLoading.value = true
+
+  try {
+    await signInWithEmailAndPassword(auth, email.value, password.value)
+
+    // Clear form
+    email.value = ''
+    password.value = ''
+
+    // Redirect to home page after successful login
+    router.push('/')
+  } catch (error) {
+    if (error instanceof FirebaseError) {
+      switch (error.code) {
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+          errorMessage.value = 'Email atau password salah.'
+          break
+        case 'auth/invalid-email':
+          errorMessage.value = 'Format email tidak valid.'
+          break
+        case 'auth/too-many-requests':
+          errorMessage.value = 'Terlalu banyak percobaan. Silakan coba lagi nanti.'
+          break
+        default:
+          errorMessage.value = 'Terjadi kesalahan. Silakan coba lagi.'
+      }
+    } else {
+      errorMessage.value = 'Terjadi kesalahan. Silakan coba lagi.'
     }
-  },
-  methods: {
-    async submitSignin() {
-      this.error = ''
-
-      if (!this.username || !this.password) {
-        this.error = 'Username dan password wajib diisi.'
-        return
-      }
-
-      this.isLoading = true
-
-      try {
-        // Sign in with email and password
-        await signInWithEmailAndPassword(auth, this.username, this.password)
-
-        // Clear form
-        this.username = ''
-        this.password = ''
-
-        // Redirect to home page after successful login
-        this.router.push('/')
-      } catch (error) {
-        if (error instanceof FirebaseError) {
-          if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-            this.error = 'Email atau password salah.'
-          } else if (error.code === 'auth/invalid-email') {
-            this.error = 'Format email tidak valid.'
-          } else if (error.code === 'auth/too-many-requests') {
-            this.error = 'Terlalu banyak percobaan. Silakan coba lagi nanti.'
-          } else {
-            this.error = 'Terjadi kesalahan. Silakan coba lagi.'
-          }
-        }
-      } finally {
-        this.isLoading = false
-      }
-    },
-  },
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
