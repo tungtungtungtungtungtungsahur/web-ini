@@ -67,7 +67,7 @@
       <div class="form-group selector" @click="openPriceModal">
         <label>Harga</label>
         <span>{{
-          price !== null && price !== 'Masukkan harga' ? 'Rp ' + price : 'Masukkan harga'
+          price !== null ? 'Rp ' + price : 'Masukkan harga'
         }}</span>
       </div>
 
@@ -249,7 +249,7 @@ export default defineComponent({
       this.showConditionModal = false
     },
     openPriceModal() {
-      this.tempPrice = this.price !== null && this.price !== 'Masukkan harga' ? this.price : null
+      this.tempPrice = this.price !== null ? this.price : null
       this.priceError = ''
       this.showPriceModal = true
     },
@@ -396,8 +396,8 @@ export default defineComponent({
   cursor: pointer;
   color: #fff;
   font-weight: 400;
-  margin-right: 20px;
-  margin-left: -40px;
+  margin-right: 50px;
+  margin-left: -50px;
 }
 
 .header h2 {

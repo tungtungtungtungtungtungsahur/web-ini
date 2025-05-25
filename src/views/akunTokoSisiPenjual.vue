@@ -277,7 +277,8 @@ export default {
 }
 
 .back-button {
-  margin-right: 15px;
+  margin-right: 50px;
+  margin-left: -50px;
   background: none;
   border: none;
   font-size: 24px;

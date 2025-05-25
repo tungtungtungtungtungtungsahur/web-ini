@@ -3,8 +3,10 @@ import { ref, onMounted } from 'vue'
 import { auth } from './firebase'
 import { onAuthStateChanged } from 'firebase/auth'
 import MainSidebar from './components/Sidebar.vue'
+import { useRoute } from 'vue-router'
 
 const isLoading = ref(true)
+const route = useRoute()
 
 onMounted(() => {
   console.log('App mounted, checking auth state...')
@@ -21,8 +23,8 @@ onMounted(() => {
       <div class="loading-spinner"></div>
     </div>
     <div class="layout" v-else>
-      <MainSidebar />
-      <div class="content">
+      <MainSidebar v-if="route.name !== 'akunTokoSisiPenjual'" />
+      <div :class="{'content': true, 'full-width': route.name === 'akunTokoSisiPenjual'}">
         <router-view />
       </div>
     </div>
@@ -48,6 +50,10 @@ onMounted(() => {
   overflow-y: auto;
   background-color: #f9f9f9;
   padding: 20px;
+}
+
+.full-width {
+  padding-left: 0;
 }
 
 /* Loading spinner */
