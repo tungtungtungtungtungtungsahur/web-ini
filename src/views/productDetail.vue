@@ -125,6 +125,7 @@
     category?: string
     condition?: string
     style?: string
+    sellerUsername?: string
   }
 
   interface Seller {
@@ -132,6 +133,19 @@
     name: string
     username: string
     avatarUrl?: string
+  }
+
+  interface CartItem {
+    id: string
+    name: string
+    price: number
+    images: string[]
+    sellerId: string
+    sellerUsername?: string
+    seller?: {
+      name: string
+      avatarUrl?: string
+    }
   }
 
   const route = useRoute()
@@ -197,18 +211,12 @@
   }
 
   const startChat = () => {
-    if (sellerData.value) {
+    if (sellerData.value && product.value) {
       router.push({
-        name: 'chat',
+        name: 'ChatDetail',
         params: {
-          receiverId: sellerData.value.id
-        },
-        state: {
-          productInfo: {
-            name: product.value?.name,
-            price: product.value?.price,
-            images: product.value?.images
-          }
+          receiverId: sellerData.value.id,
+          productId: product.value.id
         }
       })
     }
@@ -218,7 +226,7 @@
     if (!product.value || !sellerData.value) return
 
     try {
-      await cartStore.addToCart({
+      const cartItem: CartItem = {
         id: product.value.id,
         name: product.value.name,
         price: product.value.price,
@@ -229,7 +237,8 @@
           name: sellerData.value.name,
           avatarUrl: sellerData.value.avatarUrl
         }
-      })
+      }
+      await cartStore.addToCart(cartItem)
     } catch (err) {
       console.error('Error adding to cart:', err)
     }

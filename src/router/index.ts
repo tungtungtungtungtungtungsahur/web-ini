@@ -3,6 +3,7 @@ import Signin from '../views/signin.vue'
 import Home from '../views/Home.vue'
 import { auth } from '../firebase'
 import { onAuthStateChanged } from 'firebase/auth'
+import ChatDetail from '../views/ChatDetail.vue'
 
 // Create a loading state
 let isLoading = true
@@ -115,6 +116,12 @@ const router = createRouter({
       path: '/product/:id',
       name: 'product-detail',
       component: () => import('../views/productDetail.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/chat/:receiverId/:productId?',
+      name: 'ChatDetail',
+      component: ChatDetail,
       meta: { requiresAuth: true },
     },
   ],

@@ -5,7 +5,7 @@
         <span class="back-arrow" @click="closeForm">&leftarrow;</span>
         <h2>Edit Produk</h2>
       </div>
-  
+
       <div class="form-wrapper">
         <!-- Upload Foto -->
         <div class="photo-upload">
@@ -38,13 +38,13 @@
             style="display:none"
           />
         </div>
-  
+
         <!-- Nama Produk -->
         <div class="form-group">
           <label>Nama Produk</label>
           <input v-model="productName" type="text" placeholder="Nama produk" />
         </div>
-  
+
         <!-- Deskripsi -->
         <div class="form-group">
           <label>Deskripsi</label>
@@ -54,7 +54,7 @@
             <span>{{ descriptionWordCount }}/500 kata</span>
           </div>
         </div>
-  
+
         <!-- Kategori, Style, Kondisi, Harga -->
         <div class="form-group selector" @click="showCategoryModal = true">
           <label>Kategori</label>
@@ -72,13 +72,13 @@
           <label>Harga</label>
           <span>{{ price !== null && price !== 'Masukkan harga' ? 'Rp ' + price : 'Masukkan harga' }}</span>
         </div>
-  
+
         <!-- Submit Button -->
         <button class="submit-btn" @click="submitForm" :disabled="isLoading">
           <span v-if="isLoading" class="spinner"></span>
           <span v-else>Submit</span>
         </button>
-  
+
         <!-- Modal Sukses -->
         <div v-if="showSuccessModal" class="modal-overlay">
           <div class="modal-success">
@@ -87,7 +87,7 @@
             <button class="modal-ok" @click="showSuccessModal = false">OK</button>
           </div>
         </div>
-  
+
         <!-- Modal Pilih Kategori -->
         <div v-if="showCategoryModal" class="modal-overlay" @click.self="showCategoryModal = false">
           <div class="modal-select">
@@ -98,7 +98,7 @@
             <button class="modal-ok" @click="showCategoryModal = false">Tutup</button>
           </div>
         </div>
-  
+
         <!-- Modal Pilih Style -->
         <div v-if="showStyleModal" class="modal-overlay" @click.self="showStyleModal = false">
           <div class="modal-select">
@@ -109,7 +109,7 @@
             <button class="modal-ok" @click="showStyleModal = false">Tutup</button>
           </div>
         </div>
-  
+
         <!-- Modal Pilih Kondisi -->
         <div v-if="showConditionModal" class="modal-overlay" @click.self="showConditionModal = false">
           <div class="modal-select">
@@ -120,7 +120,7 @@
             <button class="modal-ok" @click="showConditionModal = false">Tutup</button>
           </div>
         </div>
-  
+
         <!-- Modal Harga -->
         <div v-if="showPriceModal" class="modal-overlay" @click.self="showPriceModal = false">
           <div class="modal-select modal-price">
@@ -142,7 +142,7 @@
       </div>
     </div>
   </template>
-  
+
   <script lang="ts">
   import { defineComponent, ref, onMounted, computed } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
@@ -345,7 +345,7 @@
           isLoading.value = false
           showSuccessModal.value = true
           console.log('Product updated successfully!')
-          
+
           // Navigate back after successful update
           setTimeout(() => {
             router.push('/akun')
@@ -405,7 +405,7 @@
     },
   });
   </script>
-  
+
   <style scoped>
   .edit-product-container {
     width: 100vw;
@@ -432,7 +432,7 @@
     margin-top: 0;
     padding-top: 80px;
   }
-  
+
   .header {
     width: 100%;
     display: flex;
@@ -453,7 +453,7 @@
     align-items: left;
     padding-left: 80px; /* Set left padding for sidebar clearance */
   }
-  
+
   .back-arrow {
     position: static;
     font-size: 28px;
@@ -463,7 +463,7 @@
     margin-right: 12px;
     margin-left: 0;
   }
-  
+
   .header h2 {
     font-size: 1.4rem;
     font-weight: 500;
@@ -471,7 +471,7 @@
     margin: 0;
     text-align: left;
   }
-  
+
   .form-wrapper {
     width: 100%;
     max-width: 1200px;
@@ -490,12 +490,12 @@
     transition: all 0.3s ease;
     max-height: calc(100vh - 100px); /* Re-evaluate if this max-height is correct */
   }
-  
+
   .form-wrapper:hover {
     transform: translateY(-5px);
     box-shadow: 0 12px 40px rgba(0,0,0,0.12);
   }
-  
+
   .photo-upload {
     width: 100%;
     margin-bottom: 20px;
@@ -505,14 +505,14 @@
     padding-bottom: 20px;
     border-bottom: 1px solid #ccc;
   }
-  
+
   .photo-list {
     display: flex;
     gap: 16px;
     align-items: center;
     justify-content: center;
   }
-  
+
   .photo-preview {
     width: 120px;
     height: 120px;
@@ -526,13 +526,13 @@
     position: relative;
     cursor: pointer;
   }
-  
+
   .photo-preview img {
     max-width: 100%;
     max-height: 100%;
     object-fit: cover;
   }
-  
+
   .add-photo {
     color: #888;
     font-size: 1rem;
@@ -541,12 +541,12 @@
     align-items: center;
     justify-content: center;
   }
-  
+
   .uploaded-photo {
     border-style: solid;
     cursor: default;
   }
-  
+
   .remove-photo {
     position: absolute;
     top: 2px;
@@ -565,18 +565,18 @@
     z-index: 2;
     transition: background 0.2s;
   }
-  
+
   .remove-photo:hover {
     background: #e11d48;
   }
-  
+
   .photo-info {
     font-size: 12px;
     color: #888;
     margin-top: 8px;
     text-align: center;
   }
-  
+
   .form-group {
     width: 100%;
     margin-bottom: 20px;
@@ -585,7 +585,7 @@
     border-bottom: 1px solid #ccc;
     display: block;
   }
-  
+
   .form-group label {
     font-weight: 600;
     display: block;
@@ -594,7 +594,7 @@
     font-size: 1rem;
     padding-left: 0;
   }
-  
+
   .form-group input,
   .form-group textarea {
     width: 100%;
@@ -608,12 +608,12 @@
     background: transparent;
     color: #222;
   }
-  
+
   .form-group textarea {
     min-height: 80px;
     resize: vertical;
   }
-  
+
   .form-group.selector {
     display: flex;
     justify-content: space-between;
@@ -624,7 +624,7 @@
     margin-bottom: 20px;
     background: transparent;
   }
-  
+
   .form-group.selector label {
     font-weight: 600;
     margin-bottom: 0;
@@ -634,7 +634,7 @@
     flex-shrink: 0;
     margin-right: 16px;
   }
-  
+
   .form-group.selector span {
     color: #888;
     font-size: 1rem;
@@ -645,7 +645,7 @@
     text-align: right;
     flex-grow: 1;
   }
-  
+
   .desc-info {
     display: flex;
     justify-content: flex-end;
@@ -656,7 +656,7 @@
     margin-top: 4px;
     margin-bottom: 8px;
   }
-  
+
   .submit-btn {
     width: 30%;
     display: block;
@@ -672,12 +672,12 @@
     text-align: center;
     margin: 24px auto 0 auto;
   }
-  
+
   .submit-btn:disabled {
     background-color: #a5b4fc;
     cursor: not-allowed;
   }
-  
+
   .spinner {
     border: 3px solid transparent;
     border-top: 3px solid white;
@@ -688,11 +688,11 @@
     margin: 0 auto;
     display: block;
   }
-  
+
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
-  
+
   .modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -702,7 +702,7 @@
     justify-content: center;
     z-index: 99;
   }
-  
+
   .modal-success, .modal-select {
     background: white;
     padding: 20px 28px;
@@ -712,19 +712,19 @@
     box-sizing: border-box;
     text-align: center;
   }
-  
+
   .modal-success h2 {
     margin: 0 0 12px 0;
     font-size: 1.4rem;
     color: #22c55e;
   }
-  
+
   .modal-success p {
     margin: 0 0 24px 0;
     font-size: 0.95rem;
     color: #333;
   }
-  
+
   .modal-ok {
     padding: 8px 16px;
     background: #3b82f6;
@@ -735,9 +735,9 @@
     font-weight: 600;
     font-size: 0.95rem;
   }
-  
+
   .modal-select {
-    background: #f6f2fa; 
+    background: #f6f2fa;
     padding: 20px 28px;
     border-radius: 24px;
     max-width: 360px;
@@ -746,7 +746,7 @@
     text-align: left;
     box-shadow: 0 4px 24px rgba(0,0,0,0.10);
   }
-  
+
   .modal-select h3 {
     margin-top: 0;
     margin-bottom: 16px;
@@ -755,7 +755,7 @@
     text-align: left;
     color: #222;
   }
-  
+
   .modal-select ul {
     list-style: none;
     padding: 0;
@@ -766,7 +766,7 @@
     border-radius: 0;
     background: transparent;
   }
-  
+
   .modal-select li {
     padding: 10px 0;
     border-bottom: 1px solid #eee;
@@ -776,16 +776,16 @@
     background: transparent;
     transition: background 0.2s, color 0.2s;
   }
-  
+
   .modal-select li:last-child {
     border-bottom: none;
   }
-  
+
   .modal-select li:hover {
     background: #ede7f6;
     color: #7c4dff;
   }
-  
+
   .modal-ok {
     padding: 8px 16px;
     background: none;
@@ -797,7 +797,7 @@
     border-radius: 8px;
     margin-top: 4px;
   }
-  
+
   .modal-price {
     background: #f6f2fa;
     border-radius: 24px;
@@ -808,7 +808,7 @@
     text-align: center;
     box-shadow: 0 4px 24px rgba(0,0,0,0.10);
   }
-  
+
   .input-underline {
     width: 100%;
     border: none;
@@ -821,24 +821,24 @@
     outline: none;
     transition: border-color 0.2s;
   }
-  
+
   .input-underline:focus {
     border-bottom: 2.5px solid #7c4dff;
   }
-  
+
   .price-error {
     color: #e11d48;
     font-size: 0.9rem;
     margin-bottom: 8px;
   }
-  
+
   .modal-price-btns {
     display: flex;
     justify-content: center;
     gap: 16px;
     margin-top: 16px;
   }
-  
+
   .modal-cancel {
     background: none;
     border: none;
@@ -850,7 +850,7 @@
     cursor: pointer;
     transition: background 0.2s;
   }
-  
+
   .modal-save {
     background: #ede7f6;
     border: none;
@@ -863,9 +863,8 @@
     box-shadow: 0 2px 8px rgba(124,77,255,0.04);
     transition: background 0.2s;
   }
-  
+
   .modal-save:active {
     background: #d1c4e9;
   }
   </style>
-  
