@@ -24,25 +24,6 @@
       </div>
     </div>
 
-    <div class="menu-list">
-      <div class="menu-item" @click="router.push('/akunTokoSisiPenjual')">
-        <span>🏬 Katalog Saya</span>
-        <span class="arrow">›</span>
-      </div>
-      <div class="menu-item" @click="router.push('/BioDataToko')">
-        <span>📄 Biodata Toko</span>
-        <span class="arrow">›</span>
-      </div>
-      <div class="menu-item" @click="router.push('/bantuan')">
-        <span>❓ Bantuan</span>
-        <span class="arrow">›</span>
-      </div>
-      <div class="menu-item" @click="showLogoutModal">
-        <span>🚪 Keluar</span>
-        <span class="arrow">›</span>
-      </div>
-    </div>
-
     <div v-if="showLogoutConfirm" class="modal-overlay">
       <div class="modal-box">
         <svg class="warning-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="#f44336" stroke-width="2">
@@ -186,34 +167,6 @@ export default {
 .count {
   font-size: 18px;
   font-weight: bold;
-}
-
-.menu-list {
-  margin-top: 30px;
-}
-
-.menu-item {
-  padding: 15px 20px;
-  background: #1a2b35;
-  border-bottom: 1px solid black;
-  font-size: 16px;
-  color: white;
-  cursor: pointer;
-  transition: background 0.2s ease;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-radius: 8px;
-  margin-bottom: 10px;
-}
-
-.arrow {
-  font-size: 18px;
-  color: white;
-}
-
-.menu-item:hover {
-  background: #cce0ff;
 }
 
 /* Modal Styles */

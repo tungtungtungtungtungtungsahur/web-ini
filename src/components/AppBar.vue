@@ -23,6 +23,8 @@
           <i class="fas fa-chevron-down dropdown-icon"></i>
           <div v-if="showDropdown" class="dropdown-menu" @click.stop>
             <button class="dropdown-item" @click="goToProfile">Profile</button>
+            <button class="dropdown-item" @click="goToKatalog">Katalog Toko</button>
+            <button class="dropdown-item" @click="goToFAQ">FAQ</button>
             <button class="dropdown-item logout-btn" @click="logout">Logout</button>
           </div>
         </div>
@@ -114,6 +116,14 @@ const handleSearch = () => {
 const goToProfile = () => {
   showDropdown.value = false
   router.push('/akun')
+}
+const goToKatalog = () => {
+  showDropdown.value = false
+  router.push('/akunTokoSisiPenjual')
+}
+const goToFAQ = () => {
+  showDropdown.value = false
+  router.push('/bantuan')
 }
 const goToMessages = () => router.push('/chats')
 const goToCart = () => router.push('/cart')
