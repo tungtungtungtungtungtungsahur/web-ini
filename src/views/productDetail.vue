@@ -391,8 +391,8 @@
 
   .visit-shop-btn {
     background: none;
-    border: 1px solid #007bff;
-    color: #007bff;
+    border: 1px solid #b71c1c;
+    color: #b71c1c;
     padding: 6px 12px;
     border-radius: 4px;
     font-size: 12px;
@@ -401,7 +401,7 @@
   }
 
   .visit-shop-btn:hover {
-    background: #007bff;
+    background: #b71c1c;
     color: white;
   }
 
