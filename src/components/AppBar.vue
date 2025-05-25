@@ -16,17 +16,28 @@
       </button>
     </div>
     <div class="app-bar-right">
-      <div class="profile-section" @click="goToProfile">
-        <img :src="userPhotoURL" alt="Profile" class="avatar" @error="userPhotoURL = 'https://via.placeholder.com/40'" />
-        <span class="greeting">Hi, {{ userName }}</span>
-      </div>
-      <button class="icon-btn" @click="goToMessages">
-        <i class="fas fa-comment"></i>
-      </button>
-      <button class="icon-btn" @click="goToCart">
-        <i class="fas fa-shopping-cart"></i>
-      </button>
-      <button class="sell-btn" @click="goToSell">Jual</button>
+      <template v-if="isLoggedIn">
+        <div class="profile-section" @click="toggleDropdown">
+          <img :src="userPhotoURL" alt="Profile" class="avatar" @error="userPhotoURL = 'https://via.placeholder.com/40'" />
+          <span class="greeting">Hi, {{ userName }}</span>
+          <i class="fas fa-chevron-down dropdown-icon"></i>
+          <div v-if="showDropdown" class="dropdown-menu" @click.stop>
+            <button class="dropdown-item" @click="goToProfile">Profile</button>
+            <button class="dropdown-item logout-btn" @click="logout">Logout</button>
+          </div>
+        </div>
+        <button class="icon-btn" @click="goToMessages">
+          <i class="fas fa-comment"></i>
+        </button>
+        <button class="icon-btn" @click="goToCart">
+          <i class="fas fa-shopping-cart"></i>
+        </button>
+        <button class="sell-btn" @click="goToSell">Jual</button>
+      </template>
+      <template v-else>
+        <button class="login-btn" @click="goToLogin">Login</button>
+        <button class="signup-btn" @click="goToSignup">Signup</button>
+      </template>
     </div>
   </div>
 </template>
@@ -36,29 +47,36 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth, db } from '../firebase'
 import { doc, getDoc } from 'firebase/firestore'
+import { signOut, onAuthStateChanged } from 'firebase/auth'
 
 const router = useRouter()
 const searchQuery = ref('')
 
 const userName = ref('User')
 const userPhotoURL = ref('https://via.placeholder.com/40')
+const isLoggedIn = ref(false)
+const showDropdown = ref(false)
 
-onMounted(async () => {
-  const user = auth.currentUser
-  if (user) {
-    userName.value = user.displayName || 'User'
-    userPhotoURL.value = user.photoURL || 'https://via.placeholder.com/40'
-
-    // Fallback: Try to get more info from Firestore if needed
-    if (!user.displayName || !user.photoURL) {
-      const userDoc = await getDoc(doc(db, 'users', user.uid))
-      if (userDoc.exists()) {
-        const data = userDoc.data()
-        if (data.name) userName.value = data.name
-        if (data.photoURL) userPhotoURL.value = data.photoURL
+onMounted(() => {
+  onAuthStateChanged(auth, async (user) => {
+    isLoggedIn.value = !!user
+    if (user) {
+      userName.value = user.displayName || 'User'
+      userPhotoURL.value = user.photoURL || 'https://via.placeholder.com/40'
+      if (!user.displayName || !user.photoURL) {
+        const userDoc = await getDoc(doc(db, 'users', user.uid))
+        if (userDoc.exists()) {
+          const data = userDoc.data()
+          if (data.name) userName.value = data.name
+          if (data.photoURL) userPhotoURL.value = data.photoURL
+        }
       }
+    } else {
+      userName.value = 'User'
+      userPhotoURL.value = 'https://via.placeholder.com/40'
     }
-  }
+  })
+  document.addEventListener('click', closeDropdown)
 })
 
 const handleSearch = () => {
@@ -71,19 +89,29 @@ const handleSearch = () => {
 }
 
 const goToProfile = () => {
+  showDropdown.value = false
   router.push('/akun')
 }
-const goToMessages = () => {
-  router.push('/messages')
+const goToMessages = () => router.push('/messages')
+const goToCart = () => router.push('/cart')
+const goToSell = () => router.push('/sell')
+const goHome = () => router.push('/')
+const goToLogin = () => router.push({ name: 'signin' })
+const goToSignup = () => router.push({ name: 'signup' })
+
+const toggleDropdown = (e) => {
+  e.stopPropagation()
+  showDropdown.value = !showDropdown.value
 }
-const goToCart = () => {
-  router.push('/cart')
+const closeDropdown = () => {
+  showDropdown.value = false
 }
-const goToSell = () => {
-  router.push('/sell')
-}
-const goHome = () => {
+
+const logout = async () => {
+  await signOut(auth)
+  showDropdown.value = false
   router.push('/')
+  window.location.reload()
 }
 </script>
 
@@ -160,6 +188,7 @@ const goHome = () => {
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  position: relative;
 }
 .avatar {
   width: 32px;
@@ -199,6 +228,56 @@ const goHome = () => {
 }
 .sell-btn:hover {
   background: #b71c1c;
+}
+.login-btn, .signup-btn {
+  background: #e53935;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: background 0.2s;
+}
+.login-btn:hover, .signup-btn:hover {
+  background: #b71c1c;
+}
+.dropdown-icon {
+  font-size: 14px;
+  margin-left: 4px;
+}
+.dropdown-menu {
+  position: absolute;
+  top: 110%;
+  right: 0;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  min-width: 140px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+}
+.dropdown-item {
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 10px 20px;
+  font-size: 15px;
+  color: #222;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.dropdown-item:hover {
+  background: #f5f5f5;
+}
+.logout-btn {
+  color: #e53935;
+  font-weight: bold;
 }
 @media (max-width: 768px) {
   .app-name {
