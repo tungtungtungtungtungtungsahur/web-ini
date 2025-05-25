@@ -322,7 +322,7 @@ export default defineComponent({
       }
     },
     closeForm() {
-      alert('Tutup form')
+      this.router.push('/');
     },
     onDescriptionInput(e: Event) {
       const words = (e.target as HTMLTextAreaElement).value.trim().split(/\s+/).filter(Boolean)
@@ -396,8 +396,8 @@ export default defineComponent({
   cursor: pointer;
   color: #fff;
   font-weight: 400;
-  margin-right: 12px;
-  margin-left: 0;
+  margin-right: 20px;
+  margin-left: -40px;
 }
 
 .header h2 {
