@@ -110,6 +110,12 @@ const router = createRouter({
       component: () => import('../views/SearchResults.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/product/:id',
+      name: 'product-detail',
+      component: () => import('../views/productDetail.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 

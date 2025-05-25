@@ -69,10 +69,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth, db } from '../firebase'
 import { collection, getDocs, query, orderBy } from 'firebase/firestore'
+
+defineComponent({
+  name: 'Home'
+})
 
 interface Category {
   icon: string
@@ -94,11 +98,23 @@ interface Product {
 const router = useRouter()
 
 // State
-const searchQuery = ref('')
-const selectedCategory = ref('Semua')
-const loading = ref(true)
-const error = ref('')
+const searchQuery = ref<string>('')
+const selectedCategory = ref<string>('Semua')
+const loading = ref<boolean>(true)
+const error = ref<string>('')
 const products = ref<Product[]>([])
+
+// Categories data
+const categories = ref<Category[]>([
+  { icon: 'fas fa-tshirt', label: 'Fashion' },
+  { icon: 'fas fa-couch', label: 'Furniture' },
+  { icon: 'fas fa-plug', label: 'Elektronik' },
+  { icon: 'fas fa-watch', label: 'Aksesoris' },
+  { icon: 'fas fa-running', label: 'Sepatu' },
+  { icon: 'fas fa-shopping-bag', label: 'Tas' },
+  { icon: 'fas fa-paint-brush', label: 'Kosmetik' },
+  { icon: 'fas fa-home', label: 'Perabotan' }
+])
 
 // Fetch products from Firestore
 const fetchProducts = async () => {
@@ -142,18 +158,6 @@ onMounted(() => {
   fetchProducts()
 })
 
-// Categories data
-const categories: Category[] = [
-  { icon: 'fas fa-tshirt', label: 'Fashion' },
-  { icon: 'fas fa-couch', label: 'Furniture' },
-  { icon: 'fas fa-plug', label: 'Elektronik' },
-  { icon: 'fas fa-watch', label: 'Aksesoris' },
-  { icon: 'fas fa-running', label: 'Sepatu' },
-  { icon: 'fas fa-shopping-bag', label: 'Tas' },
-  { icon: 'fas fa-paint-brush', label: 'Kosmetik' },
-  { icon: 'fas fa-home', label: 'Perabotan' }
-]
-
 // Computed
 const filteredProducts = computed(() => {
   let filtered = products.value
@@ -161,7 +165,6 @@ const filteredProducts = computed(() => {
   if (selectedCategory.value !== 'Semua') {
     filtered = filtered.filter((p: Product) => p.category === selectedCategory.value)
   }
-
 
   return filtered
 })
