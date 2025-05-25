@@ -47,10 +47,6 @@
               <i class="fas fa-star" :class="{ 'new': product.condition === 'new' }"></i>
               <span>{{ product.condition }}</span>
             </div>
-            <div class="seller">
-              <i class="fas fa-user"></i>
-              <span>@{{ product.sellerUsername }}</span>
-            </div>
           </div>
         </div>
       </div>
@@ -320,7 +316,7 @@ const formatPrice = (price: string): string => {
 }
 
 .price {
-  color: #ff6b00;
+  color: #e53935;
   font-weight: bold;
   margin: 0 0 8px;
 }
@@ -336,14 +332,6 @@ const formatPrice = (price: string): string => {
 
 .condition i.new {
   color: #ffd700;
-}
-
-.seller {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: #666;
 }
 
 .loading {

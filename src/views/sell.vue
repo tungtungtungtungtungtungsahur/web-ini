@@ -298,6 +298,15 @@ export default defineComponent({
       }
 
       try {
+        // Fetch username from users collection
+        const userRef = doc(db, 'users', user.uid)
+        const userSnap = await getDoc(userRef)
+        let sellerUsername = 'anonymous'
+        if (userSnap.exists()) {
+          const userData = userSnap.data()
+          sellerUsername = userData.username || 'anonymous'
+        }
+
         const imageUrls: string[] = []
         for (const file of this.imageFiles) {
           const timestamp = new Date().getTime()
@@ -310,6 +319,7 @@ export default defineComponent({
 
         await addDoc(collection(db, 'products'), {
           sellerId: user.uid,
+          sellerUsername: user.username,
           name: this.productName,
           description: this.description,
           category: this.category,

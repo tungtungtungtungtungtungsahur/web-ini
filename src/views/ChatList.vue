@@ -1,41 +1,43 @@
 <template>
-  <div class="chat-list">
-    <div class="header">
-      <h1>Pesan</h1>
-    </div>
+  <div class="chat-page">
+    <div class="chat-list">
+      <div class="header">
+        <h1>Pesan</h1>
+      </div>
 
-    <div class="search-bar">
-      <input
-        v-model="searchQuery"
-        type="text"
-        placeholder="Cari chat..."
-        @input="filterChats"
-      />
-    </div>
+      <div class="search-bar">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Cari chat..."
+          @input="filterChats"
+        />
+      </div>
 
-    <div v-if="loading" class="loading">
-      <div class="spinner"></div>
-    </div>
+      <div v-if="loading" class="loading">
+        <div class="spinner"></div>
+      </div>
 
-    <div v-else-if="error" class="error">
-      {{ error }}
-    </div>
+      <div v-else-if="error" class="error">
+        {{ error }}
+      </div>
 
-    <div v-else-if="chats.length === 0" class="empty">
-      <p>Belum ada pesan</p>
-    </div>
+      <div v-else-if="chats.length === 0" class="empty">
+        <p>Belum ada pesan</p>
+      </div>
 
-    <div v-else class="chat-items">
-      <div v-for="chat in chats" :key="chat.id" class="chat-item" @click="openChat(chat)">
-        <img :src="chat.otherUser.avatarUrl || '/default-avatar.png'" alt="avatar" class="avatar" />
-        <div class="chat-info">
-          <div class="chat-header">
-            <h3>{{ chat.otherUser.name }}</h3>
-            <span class="timestamp">{{ formatTime(chat.lastMessage?.timestamp) }}</span>
-          </div>
-          <div class="chat-preview">
-            <p class="message-preview">{{ chat.lastMessage?.message || 'Belum ada pesan' }}</p>
-            <span v-if="chat.unreadCount > 0" class="unread-badge">{{ chat.unreadCount }}</span>
+      <div v-else class="chat-items">
+        <div v-for="chat in chats" :key="chat.id" class="chat-item" @click="openChat(chat)">
+          <img :src="chat.otherUser.avatarUrl || '/default-avatar.png'" alt="avatar" class="avatar" />
+          <div class="chat-info">
+            <div class="chat-header">
+              <h3>{{ chat.otherUser.name }}</h3>
+              <span class="timestamp">{{ formatTime(chat.lastMessage?.timestamp) }}</span>
+            </div>
+            <div class="chat-preview">
+              <p class="message-preview">{{ chat.lastMessage?.message || 'Belum ada pesan' }}</p>
+              <span v-if="chat.unreadCount > 0" class="unread-badge">{{ chat.unreadCount }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -261,6 +263,14 @@ export default defineComponent({
 </script>
 
 <style scoped>
+.chat-page {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
 .chat-list {
   display: flex;
   flex-direction: column;
@@ -270,8 +280,8 @@ export default defineComponent({
 
 .header {
   padding: 1rem;
-  background-color: #000000;
-  color: white;
+  background-color: #ffffff;
+  color: black;
   position: sticky;
   top: 0;
   z-index: 10;

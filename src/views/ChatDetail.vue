@@ -1,160 +1,162 @@
 <template>
-  <div class="chat-detail">
-    <div class="header">
-      <button class="back-button" @click="goBack">
-        <svg viewBox="0 0 24 24" width="24" height="24">
-          <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
-        </svg>
-      </button>
-      <div class="user-info">
-        <img :src="receiver.avatarUrl || '/default-avatar.png'" alt="avatar" class="avatar" />
-        <div class="user-details">
-          <h2>{{ receiver.name }}</h2>
-          <p>@{{ receiver.username }}</p>
+  <div class="chat-page">
+    <div class="chat-detail">
+      <div class="header">
+        <button class="back-button" @click="goBack">
+          <svg viewBox="0 0 24 24" width="24" height="24">
+            <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+          </svg>
+        </button>
+        <div class="user-info">
+          <img :src="receiver.avatarUrl || '/default-avatar.png'" alt="avatar" class="avatar" />
+          <div class="user-details">
+            <h2>{{ receiver.name }}</h2>
+            <p>@{{ receiver.username }}</p>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div v-if="productInfo" class="product-info">
-      <img :src="productInfo.images?.[0] || '/placeholder.png'" alt="product" class="product-img" />
-      <div class="product-details">
-        <h3>{{ productInfo.name }}</h3>
-        <p class="price">Rp {{ formatPrice(productInfo.price) }}</p>
-      </div>
-    </div>
-
-    <div v-if="loading" class="loading">
-      <div class="spinner"></div>
-    </div>
-
-    <div v-else-if="error" class="error">
-      {{ error }}
-    </div>
-
-    <div v-else class="messages" ref="messagesContainer">
-      <div v-for="message in messages" :key="message.id"
-           :class="['message', message.senderId === currentUser?.uid ? 'sent' : 'received']">
-        <div class="message-content">
-          <p v-if="message.location">
-            <a :href="message.location.mapsLink" target="_blank" rel="noopener noreferrer">
-              📍 Lihat Lokasi
-            </a>
-          </p>
-          <p v-else>{{ message.message }}</p>
-          <span class="timestamp">{{ formatTime(message.timestamp) }}</span>
-          <span v-if="message.senderId === currentUser?.uid" class="status">
-            {{ message.read ? '✓✓' : '✓' }}
-          </span>
+      <div v-if="productInfo" class="product-info">
+        <img :src="productInfo.images?.[0] || '/placeholder.png'" alt="product" class="product-img" />
+        <div class="product-details">
+          <h3>{{ productInfo.name }}</h3>
+          <p class="price">Rp {{ formatPrice(productInfo.price) }}</p>
         </div>
       </div>
-    </div>
 
-    <div class="input-area">
-      <button class="location-button" @click="toggleLocationPicker" :disabled="sending">
-        <svg viewBox="0 0 24 24" width="24" height="24">
-          <path fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-        </svg>
-      </button>
-      <input
-        v-model="newMessage"
-        @keyup.enter="sendMessage"
-        placeholder="Ketik pesan..."
-        type="text"
-        :disabled="sending"
-      />
-      <button @click="sendMessage" :disabled="!newMessage.trim() || sending" class="send-button">
-        <svg v-if="sending" class="sending-icon" viewBox="0 0 24 24" width="24" height="24">
-          <path fill="currentColor" d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z">
-            <animateTransform
-              attributeName="transform"
-              type="rotate"
-              from="0 12 12"
-              to="360 12 12"
-              dur="1s"
-              repeatCount="indefinite"
-            />
-          </path>
-        </svg>
-        <svg v-else class="send-icon" viewBox="0 0 24 24" width="24" height="24">
-          <path fill="currentColor" d="M3 20V4L22 12L3 20ZM5 17L16.85 12L5 7V10.5L11 12L5 13.5V17Z"/>
-        </svg>
-      </button>
-    </div>
+      <div v-if="loading" class="loading">
+        <div class="spinner"></div>
+      </div>
 
-    <div v-if="showLocationPicker" class="location-modal">
-      <div class="location-modal-content">
-        <div class="location-modal-header">
-          <h3>Pilih Lokasi</h3>
-          <button class="close-button" @click="toggleLocationPicker">×</button>
+      <div v-else-if="error" class="error">
+        {{ error }}
+      </div>
+
+      <div v-else class="messages" ref="messagesContainer">
+        <div v-for="message in messages" :key="message.id"
+             :class="['message', message.senderId === currentUser?.uid ? 'sent' : 'received']">
+          <div class="message-content">
+            <p v-if="message.location">
+              <a :href="message.location.mapsLink" target="_blank" rel="noopener noreferrer">
+                📍 Lihat Lokasi
+              </a>
+            </p>
+            <p v-else>{{ message.message }}</p>
+            <span class="timestamp">{{ formatTime(message.timestamp) }}</span>
+            <span v-if="message.senderId === currentUser?.uid" class="status">
+              {{ message.read ? '✓✓' : '✓' }}
+            </span>
+          </div>
         </div>
+      </div>
 
-        <div class="search-section">
-          <div class="search-container">
-            <input
-              v-model="locationSearch"
-              @input="searchLocations"
-              placeholder="Cari lokasi..."
-              type="text"
-              class="location-search"
-            />
-            <button class="search-button" @click="searchLocations">
-              <svg viewBox="0 0 24 24" width="24" height="24">
-                <path fill="currentColor" d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-              </svg>
+      <div class="input-area">
+        <button class="location-button" @click="toggleLocationPicker" :disabled="sending">
+          <svg viewBox="0 0 24 24" width="24" height="24">
+            <path fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+          </svg>
+        </button>
+        <input
+          v-model="newMessage"
+          @keyup.enter="sendMessage"
+          placeholder="Ketik pesan..."
+          type="text"
+          :disabled="sending"
+        />
+        <button @click="sendMessage" :disabled="!newMessage.trim() || sending" class="send-button">
+          <svg v-if="sending" class="sending-icon" viewBox="0 0 24 24" width="24" height="24">
+            <path fill="currentColor" d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z">
+              <animateTransform
+                attributeName="transform"
+                type="rotate"
+                from="0 12 12"
+                to="360 12 12"
+                dur="1s"
+                repeatCount="indefinite"
+              />
+            </path>
+          </svg>
+          <svg v-else class="send-icon" viewBox="0 0 24 24" width="24" height="24">
+            <path fill="currentColor" d="M3 20V4L22 12L3 20ZM5 17L16.85 12L5 7V10.5L11 12L5 13.5V17Z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div v-if="showLocationPicker" class="location-modal">
+        <div class="location-modal-content">
+          <div class="location-modal-header">
+            <h3>Pilih Lokasi</h3>
+            <button class="close-button" @click="toggleLocationPicker">×</button>
+          </div>
+
+          <div class="search-section">
+            <div class="search-container">
+              <input
+                v-model="locationSearch"
+                @input="searchLocations"
+                placeholder="Cari lokasi..."
+                type="text"
+                class="location-search"
+              />
+              <button class="search-button" @click="searchLocations">
+                <svg viewBox="0 0 24 24" width="24" height="24">
+                  <path fill="currentColor" d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                </svg>
+              </button>
+              <button class="gps-button" @click="centerOnUserLocation" title="Lokasi Saya">
+                <svg viewBox="0 0 24 24" width="24" height="24">
+                  <path fill="currentColor" d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+                </svg>
+              </button>
+            </div>
+
+            <div class="location-recommendations" v-if="!locationSearch && recommendations.length > 0">
+              <div class="recommendations-header">Rekomendasi Lokasi Terdekat</div>
+              <div v-for="place in recommendations" :key="place.osm_id"
+                   class="recommendation-item" @click="selectLocation(place)">
+                <div class="result-icon">📍</div>
+                <div class="result-details">
+                  <div class="result-name">{{ place.display_name }}</div>
+                  <div class="result-address">{{ place.address }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="search-results" v-if="locationSearch && searchResults.length > 0">
+              <div v-for="place in searchResults" :key="place.osm_id"
+                   class="search-result-item" @click="selectLocation(place)">
+                <div class="result-icon">📍</div>
+                <div class="result-details">
+                  <div class="result-name">{{ place.display_name }}</div>
+                  <div class="result-address">{{ place.address }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="map-section">
+            <div class="map-container">
+              <div id="map" class="map"></div>
+            </div>
+          </div>
+
+          <div class="location-info-container" v-if="selectedLocation">
+            <div class="location-info">
+              <div class="location-header">
+                <div class="location-icon">📍</div>
+                <div class="location-details">
+                  <div class="location-name">{{ selectedLocation.name || 'Lokasi yang dipilih' }}</div>
+                  <div class="location-address">{{ selectedLocation.address }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <button class="send-location-button" @click="sendLocation">
+              Kirim Lokasi
             </button>
-            <button class="gps-button" @click="centerOnUserLocation" title="Lokasi Saya">
-              <svg viewBox="0 0 24 24" width="24" height="24">
-                <path fill="currentColor" d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
-              </svg>
-            </button>
           </div>
-
-          <div class="location-recommendations" v-if="!locationSearch && recommendations.length > 0">
-            <div class="recommendations-header">Rekomendasi Lokasi Terdekat</div>
-            <div v-for="place in recommendations" :key="place.osm_id"
-                 class="recommendation-item" @click="selectLocation(place)">
-              <div class="result-icon">📍</div>
-              <div class="result-details">
-                <div class="result-name">{{ place.display_name }}</div>
-                <div class="result-address">{{ place.address }}</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="search-results" v-if="locationSearch && searchResults.length > 0">
-            <div v-for="place in searchResults" :key="place.osm_id"
-                 class="search-result-item" @click="selectLocation(place)">
-              <div class="result-icon">📍</div>
-              <div class="result-details">
-                <div class="result-name">{{ place.display_name }}</div>
-                <div class="result-address">{{ place.address }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="map-section">
-          <div class="map-container">
-            <div id="map" class="map"></div>
-          </div>
-        </div>
-
-        <div class="location-info-container" v-if="selectedLocation">
-          <div class="location-info">
-            <div class="location-header">
-              <div class="location-icon">📍</div>
-              <div class="location-details">
-                <div class="location-name">{{ selectedLocation.name || 'Lokasi yang dipilih' }}</div>
-                <div class="location-address">{{ selectedLocation.address }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="action-buttons">
-          <button class="send-location-button" @click="sendLocation">
-            Kirim Lokasi
-          </button>
         </div>
       </div>
     </div>
@@ -786,6 +788,14 @@ export default defineComponent({
 </script>
 
 <style scoped>
+.chat-page {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
 .chat-detail {
   display: flex;
   flex-direction: column;
@@ -944,21 +954,24 @@ export default defineComponent({
 }
 
 .message-content {
-  padding: 0.75rem 1rem;
-  border-radius: 1rem;
-  background: white;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 1rem;
+  margin-bottom: 8px;
   word-break: break-word;
+  border: 1px solid #eee;
+  color: #222;
 }
 
 .message.sent .message-content {
-  background: #333333;
-  color: white;
+  background: #e3f2fd;
+  color: #222;
 }
 
 .message.received .message-content {
-  background: white;
-  color: #000000;
+  background: #fff;
+  color: #222;
 }
 
 .message-content a {

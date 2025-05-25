@@ -129,6 +129,12 @@ const router = createRouter({
       component: ChatDetail,
       meta: { requiresAuth: true },
     },
+    {
+      path: '/shop/:id',
+      name: 'shop-detail',
+      component: () => import('../views/shopDetail.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 
