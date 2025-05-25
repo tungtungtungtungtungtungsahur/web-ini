@@ -11,19 +11,11 @@
       <div class="photo-upload">
         <div class="photo-list">
           <!-- Tombol tambah foto -->
-          <div
-            class="photo-preview add-photo"
-            v-if="photos.length < 4"
-            @click="triggerFileInput"
-          >
+          <div class="photo-preview add-photo" v-if="photos.length < 4" @click="triggerFileInput">
             <span>Tambah foto</span>
           </div>
           <!-- Foto yang sudah diupload -->
-          <div
-            class="photo-preview uploaded-photo"
-            v-for="(url, idx) in photos"
-            :key="url"
-          >
+          <div class="photo-preview uploaded-photo" v-for="(url, idx) in photos" :key="url">
             <img :src="url" alt="Preview" />
             <button class="remove-photo" @click="removePhoto(idx)">×</button>
           </div>
@@ -35,7 +27,7 @@
           accept="image/*"
           @change="onPhotoChange"
           multiple
-          style="display:none"
+          style="display: none"
         />
       </div>
 
@@ -48,7 +40,11 @@
       <!-- Deskripsi -->
       <div class="form-group">
         <label>Deskripsi</label>
-        <textarea v-model="description" @input="onDescriptionInput" placeholder="Deskripsi produk"></textarea>
+        <textarea
+          v-model="description"
+          @input="onDescriptionInput"
+          placeholder="Deskripsi produk"
+        ></textarea>
         <div class="desc-info">
           <span>Hashtag: {{ hashtagCount }}</span>
           <span>{{ descriptionWordCount }}/500 kata</span>
@@ -70,7 +66,9 @@
       </div>
       <div class="form-group selector" @click="openPriceModal">
         <label>Harga</label>
-        <span>{{ price !== null && price !== 'Masukkan harga' ? 'Rp ' + price : 'Masukkan harga' }}</span>
+        <span>{{
+          price !== null && price !== 'Masukkan harga' ? 'Rp ' + price : 'Masukkan harga'
+        }}</span>
       </div>
 
       <!-- Submit Button -->
@@ -115,7 +113,9 @@
         <div class="modal-select">
           <h3>Pilih Kondisi</h3>
           <ul>
-            <li v-for="cond in conditions" :key="cond" @click="selectCondition(cond)">{{ cond }}</li>
+            <li v-for="cond in conditions" :key="cond" @click="selectCondition(cond)">
+              {{ cond }}
+            </li>
           </ul>
           <button class="modal-ok" @click="showConditionModal = false">Tutup</button>
         </div>
@@ -143,12 +143,19 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import { ref } from 'vue'
+
 export default {
+  name: 'SellProduct',
+  setup() {
+    const fileInput = ref<HTMLInputElement | null>(null)
+    return { fileInput }
+  },
   data() {
     return {
-      photos: [], // untuk menyimpan banyak foto
-      photo: null, 
+      photos: [] as string[], // untuk menyimpan banyak foto
+      photo: null as string | null,
       productName: '',
       description: '',
       category: 'Pilih kategori',
@@ -158,102 +165,116 @@ export default {
       showSuccessModal: false,
       isLoading: false,
       categories: [
-        'Fashion', 'Furniture', 'Elektronik', 'Aksesoris', 'Sepatu', 'Tas', 'Kosmetik',
-        'Perlengkapan Rumah', 'Kacamata', 'Buku', 'Lainnya'
+        'Fashion',
+        'Furniture',
+        'Elektronik',
+        'Aksesoris',
+        'Sepatu',
+        'Tas',
+        'Kosmetik',
+        'Perlengkapan Rumah',
+        'Kacamata',
+        'Buku',
+        'Lainnya',
       ],
-      conditions: [
-        'Baru', 'Bekas', 'Baru dengan tag', 'Bekas seperti baru'
-      ],
-      styles: [
-        'Batik', 'Casual', 'Formal', 'Sporty', 'Vintage', 'Modern', 'Minimalis', 'Lainnya'
-      ],
+      conditions: ['Baru', 'Bekas', 'Baru dengan tag', 'Bekas seperti baru'],
+      styles: ['Batik', 'Casual', 'Formal', 'Sporty', 'Vintage', 'Modern', 'Minimalis', 'Lainnya'],
       showCategoryModal: false,
       showStyleModal: false,
       showConditionModal: false,
       showPriceModal: false,
       tempPrice: null,
       priceError: '',
-    };
+    }
   },
   computed: {
     hashtagCount() {
-      return (this.description.match(/#/g) || []).length;
+      return (this.description.match(/#/g) || []).length
     },
     descriptionWordCount() {
-      if (!this.description) return 0;
-      return this.description.trim().split(/\s+/).filter(Boolean).length;
+      if (!this.description) return 0
+      return this.description.trim().split(/\s+/).filter(Boolean).length
     },
   },
   methods: {
     triggerFileInput() {
-      this.$refs.fileInput.click();
+      this.fileInput?.click()
     },
-    onPhotoChange(event) {
-      const files = event.target.files;
-      if (!files.length) return;
-      const maxPhotos = 4;
+    onPhotoChange(event: Event) {
+      const files = (event.target as HTMLInputElement).files
+      if (!files || !files.length) return
+      const maxPhotos = 4
       // Gabungkan foto lama dan baru, lalu ambil maksimal 4
-      const newFiles = Array.from(files).slice(0, maxPhotos - this.photos.length);
-      const newUrls = newFiles.map(file => URL.createObjectURL(file));
-      this.photos = [...this.photos, ...newUrls].slice(0, maxPhotos);
-      this.photo = this.photos[0] || null;
+      const newFiles = Array.from(files).slice(0, maxPhotos - this.photos.length)
+      const newUrls = newFiles.map((file) => URL.createObjectURL(file as Blob))
+      this.photos = [...this.photos, ...newUrls].slice(0, maxPhotos)
+      this.photo = this.photos[0] || null
     },
-    removePhoto(idx) {
-      this.photos.splice(idx, 1);
-      this.photo = this.photos[0] || null;
+    removePhoto(idx: number) {
+      this.photos.splice(idx, 1)
+      this.photo = this.photos[0] || null
     },
-    selectCategory(cat) {
-      this.category = cat;
-      this.showCategoryModal = false;
+    selectCategory(cat: string) {
+      this.category = cat
+      this.showCategoryModal = false
     },
-    selectStyle(sty) {
-      this.style = sty;
-      this.showStyleModal = false;
+    selectStyle(sty: string) {
+      this.style = sty
+      this.showStyleModal = false
     },
-    selectCondition(cond) {
-      this.condition = cond;
-      this.showConditionModal = false;
+    selectCondition(cond: string) {
+      this.condition = cond
+      this.showConditionModal = false
     },
     openPriceModal() {
-      this.tempPrice = this.price !== null && this.price !== 'Masukkan harga' ? this.price : null;
-      this.priceError = '';
-      this.showPriceModal = true;
+      this.tempPrice = this.price !== null && this.price !== 'Masukkan harga' ? this.price : null
+      this.priceError = ''
+      this.showPriceModal = true
     },
     setPrice() {
       if (this.tempPrice === null || this.tempPrice < 0) {
-        this.priceError = 'Harga harus lebih dari atau sama dengan 0';
-        return;
+        this.priceError = 'Harga harus lebih dari atau sama dengan 0'
+        return
       }
-      this.price = this.tempPrice;
-      this.showPriceModal = false;
-      this.priceError = '';
+      this.price = this.tempPrice
+      this.showPriceModal = false
+      this.priceError = ''
     },
     submitForm() {
       if (this.photos.length < 1) {
-        alert('Minimal upload 1 foto');
-        return;
+        alert('Minimal upload 1 foto')
+        return
       }
-      if (!this.productName || !this.description || this.price === null || this.price === 'Masukkan harga' || this.price < 0 || this.category === 'Pilih kategori' || this.style === 'Pilih style' || this.condition === 'Pilih kondisi') {
-        alert('Mohon lengkapi semua data dengan benar');
-        return;
+      if (
+        !this.productName ||
+        !this.description ||
+        this.price === null ||
+        this.price === 'Masukkan harga' ||
+        this.price < 0 ||
+        this.category === 'Pilih kategori' ||
+        this.style === 'Pilih style' ||
+        this.condition === 'Pilih kondisi'
+      ) {
+        alert('Mohon lengkapi semua data dengan benar')
+        return
       }
-      this.isLoading = true;
+      this.isLoading = true
       setTimeout(() => {
-        this.isLoading = false;
-        this.showSuccessModal = true;
-      }, 1500);
+        this.isLoading = false
+        this.showSuccessModal = true
+      }, 1500)
     },
     closeForm() {
-      alert('Tutup form');
+      alert('Tutup form')
     },
-    onDescriptionInput(e) {
-      const words = e.target.value.trim().split(/\s+/).filter(Boolean);
+    onDescriptionInput(e: Event) {
+      const words = (e.target as HTMLTextAreaElement).value.trim().split(/\s+/).filter(Boolean)
       if (words.length > 500) {
-        this.description = words.slice(0, 500).join(' ');
+        this.description = words.slice(0, 500).join(' ')
       }
     },
   },
-};
+}
 </script>
 
 <style scoped>
@@ -289,7 +310,7 @@ export default {
   margin-top: -10px;
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   padding: 24px 32px 32px 32px;
   box-sizing: border-box;
   display: flex;
@@ -304,7 +325,7 @@ export default {
 
 .form-wrapper:hover {
   transform: translateY(-5px);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
 }
 
 .header,
@@ -322,8 +343,8 @@ export default {
   gap: 12px;
   margin-bottom: 28px;
   position: relative;
-  padding-left: 12px; 
-  padding-right: 24px; 
+  padding-left: 12px;
+  padding-right: 24px;
   margin-top: -20px;
 }
 
@@ -394,7 +415,7 @@ export default {
   position: absolute;
   top: 2px;
   right: 2px;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   color: #fff;
   border: none;
   border-radius: 50%;
@@ -432,8 +453,8 @@ export default {
   display: block;
   margin-bottom: 12px;
   color: #222;
-  font-size: 1.1rem; 
-  padding-left: 0; 
+  font-size: 1.1rem;
+  padding-left: 0;
 }
 
 .form-group input,
@@ -441,7 +462,7 @@ export default {
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  padding: 10px 12px; 
+  padding: 10px 12px;
   border-radius: 6px;
   border: 1px solid #d1d5db;
   font-size: 1rem; /* Ukuran font input */
@@ -474,21 +495,21 @@ export default {
   /* display: block; flex item now */
   margin-bottom: 0;
   color: #222;
-  font-size: 1.1rem; 
+  font-size: 1.1rem;
 
   border-bottom: none;
   padding-bottom: 0;
   width: auto;
-  padding-left: 0; 
+  padding-left: 0;
 }
 
 .form-group.selector span {
   color: #888;
-  font-size: 0.95rem; 
+  font-size: 0.95rem;
   user-select: none;
   margin-left: 10px;
   padding-left: 0;
-  padding-right: 0; 
+  padding-right: 0;
 }
 
 .desc-info {
@@ -498,7 +519,7 @@ export default {
   color: #999;
   margin-top: 4px;
   font-weight: 400;
-  padding-left: 13px; 
+  padding-left: 13px;
 }
 
 .submit-btn {
@@ -537,20 +558,26 @@ export default {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .modal-overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.4);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 99;
 }
 
-.modal-success, .modal-select {
+.modal-success,
+.modal-select {
   background: white;
   padding: 24px 32px;
   border-radius: 16px;
@@ -585,14 +612,14 @@ export default {
 }
 
 .modal-select {
-  background: #f6f2fa; 
+  background: #f6f2fa;
   padding: 24px 32px;
   border-radius: 24px;
   max-width: 360px;
   width: 90%;
   box-sizing: border-box;
   text-align: left;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
 }
 
 .modal-select h3 {
@@ -622,7 +649,9 @@ export default {
   font-size: 1.08rem;
   color: #222;
   background: transparent;
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
 }
 
 .modal-select li:last-child {
@@ -654,7 +683,7 @@ export default {
   width: 90vw;
   box-sizing: border-box;
   text-align: center;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
 }
 
 .modal-price h3 {
@@ -715,7 +744,7 @@ export default {
   border-radius: 18px;
   padding: 10px 22px;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(124,77,255,0.04);
+  box-shadow: 0 2px 8px rgba(124, 77, 255, 0.04);
   transition: background 0.2s;
 }
 

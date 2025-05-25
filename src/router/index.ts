@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import Signin from '../views/signin.vue'
 import Home from '../views/Home.vue'
-import Sell from '../views/sell.vue'
-import signup from '../views/signup.vue'
-import Signin from '../views/signin.vue';
+import { auth } from '../firebase'
+import { onAuthStateChanged } from 'firebase/auth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -11,36 +11,63 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: Home,
-    },
-    {
-      path: '/about',
-      name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/About.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/sell',
       name: 'sell',
       component: () => import('../views/sell.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/signup',
       name: 'signup',
       component: () => import('../views/signup.vue'),
+      meta: { requiresGuest: true },
     },
     {
       path: '/signin',
       name: 'signin',
-      component: () => import('../views/signin.vue'),
+      component: Signin,
+      meta: { requiresGuest: true },
     },
     {
       path: '/cart',
       name: 'cart',
       component: () => import('../views/Cart.vue'),
+      meta: { requiresAuth: true },
     },
   ],
+})
+
+let isAuthReady = false
+
+onAuthStateChanged(auth, () => {
+  isAuthReady = true
+})
+
+router.beforeEach(async (to, from, next) => {
+  // Wait for auth to be ready
+  if (!isAuthReady) {
+    await new Promise((resolve) => {
+      const unsubscribe = onAuthStateChanged(auth, () => {
+        unsubscribe()
+        resolve(true)
+      })
+    })
+  }
+
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
+  const requiresGuest = to.matched.some((record) => record.meta.requiresGuest)
+  const isAuthenticated = auth.currentUser
+
+  if (requiresAuth && !isAuthenticated) {
+    next('/signin')
+  } else if (requiresGuest && isAuthenticated) {
+    next('/')
+  } else {
+    next()
+  }
 })
 
 export default router

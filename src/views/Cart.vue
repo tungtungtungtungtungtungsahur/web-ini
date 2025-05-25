@@ -10,8 +10,12 @@
 
       <!-- Tab Bar -->
       <div class="tab-bar">
-        <span :class="{ active: activeTab === 'proses' }" @click="activeTab = 'proses'">Proses</span>
-        <span :class="{ active: activeTab === 'selesai' }" @click="activeTab = 'selesai'">Selesai</span>
+        <span :class="{ active: activeTab === 'proses' }" @click="activeTab = 'proses'"
+          >Proses</span
+        >
+        <span :class="{ active: activeTab === 'selesai' }" @click="activeTab = 'selesai'"
+          >Selesai</span
+        >
       </div>
 
       <!-- Cart Group -->
@@ -37,31 +41,29 @@
       </div>
 
       <!-- Belum ada data -->
-      <div v-else class="empty">
-        Belum ada item selesai.
-      </div>
+      <div v-else class="empty">Belum ada item selesai.</div>
     </div>
   </div>
 </template>
 
-<script>
+<script lang="ts">
 export default {
   name: 'CartPage',
   data() {
     return {
       activeTab: 'proses',
       isEdit: false,
-    };
+    }
   },
   methods: {
     goBack() {
-      this.$router.go(-1);
+      this.$router.go(-1)
     },
     toggleEdit() {
-      this.isEdit = !this.isEdit;
+      this.isEdit = !this.isEdit
     },
   },
-};
+}
 </script>
 
 <style scoped>

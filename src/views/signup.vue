@@ -16,7 +16,9 @@
 
     <div class="form-group password-group">
       <input :type="showPassword ? 'text' : 'password'" v-model="password" placeholder="Password" />
-      <span class="toggle" @click="showPassword = !showPassword">{{ showPassword ? 'Hide' : 'Show' }}</span>
+      <span class="toggle" @click="showPassword = !showPassword">{{
+        showPassword ? 'Hide' : 'Show'
+      }}</span>
     </div>
 
     <div class="form-group">
@@ -42,8 +44,18 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
+import { FirebaseError } from 'firebase/app'
+import { auth } from '../firebase'
+import { useRouter } from 'vue-router'
+
 export default {
+  name: 'SignUpForm',
+  setup() {
+    const router = useRouter()
+    return { router }
+  },
   data() {
     return {
       name: '',
@@ -55,36 +67,65 @@ export default {
       isLoading: false,
       showSuccessModal: false,
       showPassword: false,
-    };
+    }
   },
   methods: {
-    submitSignup() {
-      this.error = '';
+    async submitSignup() {
+      this.error = ''
 
       if (!this.name || !this.username || !this.email || !this.password || !this.confirmPassword) {
-        this.error = 'Semua field harus diisi.';
-        return;
+        this.error = 'Semua field harus diisi.'
+        return
       }
 
       if (this.password !== this.confirmPassword) {
-        this.error = 'Password tidak cocok.';
-        return;
+        this.error = 'Password tidak cocok.'
+        return
       }
 
-      this.isLoading = true;
+      if (this.password.length < 6) {
+        this.error = 'Password minimal 6 karakter.'
+        return
+      }
 
-      setTimeout(() => {
-        this.isLoading = false;
-        this.showSuccessModal = true;
-        this.name = '';
-        this.username = '';
-        this.email = '';
-        this.password = '';
-        this.confirmPassword = '';
-      }, 1500);
+      this.isLoading = true
+
+      try {
+        // Create user with email and password
+        const userCredential = await createUserWithEmailAndPassword(auth, this.email, this.password)
+
+        // Update user profile with display name
+        await updateProfile(userCredential.user, {
+          displayName: this.name,
+        })
+
+        this.showSuccessModal = true
+        this.name = ''
+        this.username = ''
+        this.email = ''
+        this.password = ''
+        this.confirmPassword = ''
+
+        // Redirect to signin page after successful registration
+        setTimeout(() => {
+          this.router.push('/signin')
+        }, 2000)
+      } catch (error) {
+        if (error instanceof FirebaseError) {
+          if (error.code === 'auth/email-already-in-use') {
+            this.error = 'Email sudah terdaftar.'
+          } else if (error.code === 'auth/invalid-email') {
+            this.error = 'Format email tidak valid.'
+          } else {
+            this.error = 'Terjadi kesalahan. Silakan coba lagi.'
+          }
+        }
+      } finally {
+        this.isLoading = false
+      }
     },
   },
-};
+}
 </script>
 
 <style scoped>
