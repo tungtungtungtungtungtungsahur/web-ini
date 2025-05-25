@@ -47,6 +47,11 @@
 
     <!-- Input Area -->
     <div class="input-area">
+      <button class="location-button" @click="showLocationPicker = true" :disabled="sending">
+        <svg viewBox="0 0 24 24" width="24" height="24">
+          <path fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+      </button>
       <input
         v-model="newMessage"
         @keyup.enter="sendMessage"
@@ -72,11 +77,66 @@
         </svg>
       </button>
     </div>
+
+    <!-- Location Picker Modal -->
+    <div v-if="showLocationPicker" class="location-modal">
+      <div class="location-modal-content">
+        <div class="location-modal-header">
+          <h3>Pilih Lokasi</h3>
+          <button class="close-button" @click="showLocationPicker = false">×</button>
+        </div>
+
+        <div class="search-container">
+          <input
+            v-model="locationSearch"
+            @input="searchLocations"
+            placeholder="Cari lokasi..."
+            type="text"
+            class="location-search"
+          />
+          <button class="current-location-btn" @click="getCurrentLocation" :disabled="loadingMap">
+            <svg viewBox="0 0 24 24" width="24" height="24">
+              <path fill="currentColor" d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+            </svg>
+          </button>
+        </div>
+
+        <div v-if="loadingMap" class="loading-map">
+          <div class="spinner"></div>
+        </div>
+
+        <div v-if="suggestions.length > 0" class="location-suggestions">
+          <div v-for="suggestion in suggestions"
+               :key="suggestion.place_id"
+               class="suggestion-item"
+               @click="selectSuggestion(suggestion)">
+            <div class="suggestion-icon">🏢</div>
+            <div class="suggestion-details">
+              <div class="suggestion-name">{{ suggestion.display_name }}</div>
+              <div class="suggestion-address">{{ suggestion.address?.road || suggestion.address?.suburb || '' }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="map" class="map-container"></div>
+
+        <div v-if="selectedLocation" class="selected-location">
+          <div class="selected-location-details">
+            <div class="selected-location-name">{{ selectedLocation.name }}</div>
+            <div class="selected-location-address">{{ selectedLocation.address }}</div>
+          </div>
+          <div class="location-actions">
+            <button class="cancel-button" @click="selectedLocation = null">Ubah</button>
+            <button class="send-location-button" @click="sendSelectedLocation">Kirim Lokasi</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { defineComponent, ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { auth, db } from '../firebase'
 import {
@@ -90,6 +150,8 @@ import {
   serverTimestamp
 } from 'firebase/firestore'
 import { FirestoreError } from 'firebase/firestore'
+import type { Map, Marker, LeafletMouseEvent } from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
 interface Message {
   id: string
@@ -99,6 +161,10 @@ interface Message {
     toDate: () => Date
   }
   read: boolean
+  isLocation?: boolean
+  latitude?: number
+  longitude?: number
+  address?: string
 }
 
 interface User {
@@ -113,6 +179,29 @@ interface ProductInfo {
   name: string
   price: number
   images: string[]
+}
+
+interface Location {
+  name: string
+  address: string
+  lat: number
+  lng: number
+  place_id?: string
+  display_name?: string
+}
+
+interface Suggestion {
+  place_id: string
+  display_name: string
+  lat: string
+  lon: string
+  address?: {
+    road?: string
+    suburb?: string
+    city?: string
+    state?: string
+    country?: string
+  }
 }
 
 export default defineComponent({
@@ -136,6 +225,16 @@ export default defineComponent({
     const loading = ref(true)
     const error = ref('')
     const sending = ref(false)
+    const showLocationPicker = ref(false)
+    const locationSearch = ref('')
+    const currentLocation = ref<Location | null>(null)
+    const nearbyPlaces = ref<Location[]>([])
+    const selectedLocation = ref<Location | null>(null)
+    const loadingMap = ref(false)
+    const locationError = ref('')
+    const suggestions = ref<Suggestion[]>([])
+    let map: Map | null = null
+    let marker: Marker | null = null
 
     const formatPrice = (price: number) => {
       return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
@@ -185,6 +284,162 @@ export default defineComponent({
         sending.value = false
       }
     }
+
+    const initMap = async () => {
+      if (!map) {
+        const L = await import('leaflet')
+        map = L.map('map').setView([-6.2, 106.8], 13)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map)
+
+        map.on('click', (e: LeafletMouseEvent) => {
+          const { lat, lng } = e.latlng
+          updateMarker(lat, lng)
+          reverseGeocode(lat, lng)
+        })
+      }
+    }
+
+    const updateMarker = async (lat: number, lng: number) => {
+      if (!map) return
+
+      const L = await import('leaflet')
+      if (marker) {
+        marker.setLatLng([lat, lng])
+      } else {
+        marker = L.marker([lat, lng]).addTo(map)
+      }
+    }
+
+    const getCurrentLocation = async () => {
+      loadingMap.value = true
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+          })
+        })
+
+        const { latitude, longitude } = position.coords
+        if (map) {
+          map.setView([latitude, longitude], 15)
+          updateMarker(latitude, longitude)
+          reverseGeocode(latitude, longitude)
+        }
+      } catch (err) {
+        console.error('Error getting location:', err)
+        locationError.value = 'Gagal mendapatkan lokasi. Pastikan izin lokasi diaktifkan.'
+      } finally {
+        loadingMap.value = false
+      }
+    }
+
+    const reverseGeocode = async (lat: number, lng: number) => {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+        )
+        const data = await response.json()
+
+        selectedLocation.value = {
+          name: data.display_name.split(',')[0],
+          address: data.display_name,
+          lat,
+          lng
+        }
+      } catch (err) {
+        console.error('Error reverse geocoding:', err)
+      }
+    }
+
+    const searchLocations = async () => {
+      if (!locationSearch.value.trim()) {
+        suggestions.value = []
+        return
+      }
+
+      loadingMap.value = true
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationSearch.value)}&countrycodes=id&limit=5`
+        )
+        const data = await response.json()
+        suggestions.value = data
+      } catch (err) {
+        console.error('Error searching locations:', err)
+        locationError.value = 'Gagal mencari lokasi. Silakan coba lagi.'
+      } finally {
+        loadingMap.value = false
+      }
+    }
+
+    const selectSuggestion = (suggestion: Suggestion) => {
+      const lat = parseFloat(suggestion.lat)
+      const lon = parseFloat(suggestion.lon)
+
+      if (map) {
+        map.setView([lat, lon], 15)
+        updateMarker(lat, lon)
+        selectedLocation.value = {
+          name: suggestion.display_name.split(',')[0],
+          address: suggestion.display_name,
+          lat,
+          lng: lon
+        }
+        suggestions.value = []
+      }
+    }
+
+    const sendSelectedLocation = async () => {
+      if (!selectedLocation.value || !currentUser || sending.value) return
+
+      sending.value = true
+      try {
+        const locationMessage = `📍 ${selectedLocation.value.name}\n${selectedLocation.value.address}\nhttps://www.google.com/maps?q=${selectedLocation.value.lat},${selectedLocation.value.lng}`
+
+        const messageData = {
+          senderId: currentUser.uid,
+          message: locationMessage,
+          timestamp: serverTimestamp(),
+          read: false,
+          isLocation: true,
+          latitude: selectedLocation.value.lat,
+          longitude: selectedLocation.value.lng,
+          address: selectedLocation.value.address
+        }
+
+        await addDoc(collection(db, 'chats', chatId.value, 'messages'), messageData)
+        showLocationPicker.value = false
+        selectedLocation.value = null
+      } catch (err) {
+        console.error('Error sending location:', err)
+        error.value = 'Gagal mengirim lokasi. Silakan coba lagi.'
+      } finally {
+        sending.value = false
+      }
+    }
+
+    watch(showLocationPicker, (newValue) => {
+      if (newValue) {
+        nextTick(() => {
+          initMap()
+          getCurrentLocation()
+        })
+      } else {
+        if (map) {
+          map.remove()
+          map = null
+          marker = null
+        }
+        selectedLocation.value = null
+        locationSearch.value = ''
+        suggestions.value = []
+        locationError.value = ''
+      }
+    })
 
     const initializeChat = async () => {
       loading.value = true
@@ -264,7 +519,19 @@ export default defineComponent({
       formatPrice,
       formatTime,
       goBack,
-      sendMessage
+      sendMessage,
+      showLocationPicker,
+      locationSearch,
+      currentLocation,
+      nearbyPlaces,
+      selectedLocation,
+      loadingMap,
+      locationError,
+      suggestions,
+      searchLocations,
+      getCurrentLocation,
+      selectSuggestion,
+      sendSelectedLocation
     }
   }
 })
@@ -526,5 +793,248 @@ export default defineComponent({
 
 .message.sent .status {
   color: rgba(255, 255, 255, 0.8);
+}
+
+.location-button {
+  background: none;
+  border: none;
+  color: #0084ff;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.location-button:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+
+.location-button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.location-button:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.location-button svg {
+  width: 24px;
+  height: 24px;
+}
+
+@media (max-width: 480px) {
+  .location-button {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+
+  .location-button svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.location-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.location-modal-content {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.location-modal-header {
+  padding: 16px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.location-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px;
+  color: #666;
+}
+
+.search-container {
+  padding: 16px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  gap: 8px;
+}
+
+.location-search {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  outline: none;
+}
+
+.location-search:focus {
+  border-color: #0084ff;
+}
+
+.current-location-btn {
+  background: none;
+  border: none;
+  color: #0084ff;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.current-location-btn:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.loading-map {
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.location-suggestions {
+  max-height: 200px;
+  overflow-y: auto;
+  border-bottom: 1px solid #eee;
+}
+
+.suggestion-item {
+  display: flex;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.suggestion-item:hover {
+  background-color: #f5f5f5;
+}
+
+.suggestion-icon {
+  font-size: 24px;
+  margin-right: 12px;
+}
+
+.suggestion-details {
+  flex: 1;
+}
+
+.suggestion-name {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.suggestion-address {
+  font-size: 14px;
+  color: #666;
+}
+
+.selected-location {
+  padding: 16px;
+  border-top: 1px solid #eee;
+}
+
+.selected-location-details {
+  margin-bottom: 16px;
+}
+
+.selected-location-name {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.selected-location-address {
+  color: #666;
+  font-size: 14px;
+}
+
+.location-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cancel-button {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.send-location-button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #0084ff;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.send-location-button:hover {
+  background: #0073e6;
+}
+
+.map-container {
+  height: 300px;
+  width: 100%;
+  margin: 16px 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+@media (max-width: 480px) {
+  .location-modal-content {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+  }
+
+  .map-container {
+    height: 250px;
+  }
 }
 </style>
