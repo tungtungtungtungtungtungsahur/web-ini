@@ -151,7 +151,7 @@ import {
 } from 'firebase/firestore'
 import { FirestoreError } from 'firebase/firestore'
 import type { Map, Marker, LeafletMouseEvent } from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+import 'leaflet/dist/leaflet.css?inline'
 
 interface Message {
   id: string
