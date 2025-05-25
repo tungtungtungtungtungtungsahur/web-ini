@@ -10,175 +10,252 @@
 
       <!-- Tab Bar -->
       <div class="tab-bar">
-        <span
-          :class="{ active: activeTab === 'proses' }"
-          @click="activeTab = 'proses'"
-        >
-          Proses
-        </span>
-        <span
-          :class="{ active: activeTab === 'selesai' }"
-          @click="activeTab = 'selesai'"
-        >
-          Selesai
-        </span>
+        <span :class="{ active: activeTab === 'proses' }" @click="activeTab = 'proses'">Proses</span>
+        <span :class="{ active: activeTab === 'selesai' }" @click="goToCartDone">Selesai</span>
       </div>
 
-      <!-- Cart Items -->
-      <div v-if="activeTab === 'proses'">
-        <div v-if="loading" class="loading">
-          <div class="spinner"></div>
-        </div>
-        <div v-else-if="error" class="error">
-          {{ error }}
-        </div>
-        <div v-else-if="!cart.cartItems.length" class="empty">
-          Belum ada item di keranjang.
-        </div>
-        <template v-else>
-          <div v-for="item in cart.cartItems" :key="item.id" class="cart-group">
-            <div class="product-card">
-              <img
-                :src="item.image"
-                :alt="item.name"
-                class="product-img"
-                @error="handleImageError"
-              >
-              <div class="product-details">
-                <p class="product-title">{{ item.name }}</p>
-                <p class="product-price">Rp {{ formatPrice(item.price) }}</p>
-                <div class="quantity-control">
-                  <button @click="updateQuantity(item.id, item.quantity - 1)" :disabled="item.quantity <= 1">-</button>
-                  <span>{{ item.quantity }}</span>
-                  <button @click="updateQuantity(item.id, item.quantity + 1)">+</button>
-                </div>
-              </div>
-              <button v-if="isEdit" class="delete-btn" @click="removeItem(item.id)">×</button>
-            </div>
+      <!-- Loading State -->
+      <div v-if="loading" class="loading">
+        Loading...
+      </div>
 
-            <div class="actions">
-              <button class="chat-btn" @click="startChat(item)">Chat penjual</button>
-              <button class="checkout-btn" @click="checkout(item)">Checkout</button>
-            </div>
+      <!-- Error State -->
+      <div v-else-if="error" class="error">
+        {{ error }}
+      </div>
+
+      <!-- Empty State -->
+      <div v-else-if="!groupedItems.length" class="empty">
+        Keranjang kosong
+      </div>
+
+      <!-- Cart Groups -->
+      <template v-else>
+        <div v-for="(items, sellerUsername) in groupedItems" :key="sellerUsername" class="cart-group">
+          <div class="seller-info">
+            <img
+              class="seller-avatar"
+              :src="items[0].seller?.avatarUrl || 'https://via.placeholder.com/40'"
+              alt="avatar"
+            />
+            <span class="seller-name">{{ items[0].seller?.name || 'Seller' }}</span>
           </div>
-        </template>
-      </div>
 
-      <!-- Cart Done -->
-      <CartDone v-else />
+          <div v-for="item in items" :key="item.id" class="product-card">
+            <img
+              class="product-img"
+              :src="item.images?.[0] || 'https://via.placeholder.com/100'"
+              alt="produk"
+            />
+            <div class="product-details">
+              <p class="product-title">{{ item.name }}</p>
+              <p class="product-price">Rp {{ item.price }}</p>
+            </div>
+            <button v-if="isEdit" class="delete-btn" @click="removeItem(item.id)">×</button>
+          </div>
+
+          <div class="actions">
+            <button class="chat-btn" @click="openChat(items[0])">Chat penjual</button>
+            <button class="selesai-btn" @click="completeOrder(items)">Selesai</button>
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useCartStore } from '../stores/cart'
-import CartDone from './CartDone.vue'
-import { auth, db } from '../firebase'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
-import type { CartItem } from '../stores/cart'
+<script lang="ts">
+import { defineComponent } from 'vue'
+import {
+  collection,
+  doc,
+  getDocs,
+  deleteDoc,
+  addDoc,
+  query,
+  where,
+  getDoc,
+  serverTimestamp,
+  writeBatch,
+  increment
+} from 'firebase/firestore'
+import { getAuth } from 'firebase/auth'
+import { db } from '@/firebase'
 
-defineOptions({
-  name: 'CartPage'
-})
-
-const router = useRouter()
-const cart = useCartStore()
-
-const activeTab = ref('proses')
-const isEdit = ref(false)
-const loading = ref(true)
-const error = ref('')
-
-const cartItems = computed(() => cart.cartItems)
-
-onMounted(() => {
-  cart.fetchCartItems()
-  loading.value = false
-
-  onUnmounted(() => {
-    if (unsubscribe) unsubscribe()
-  })
-})
-
-const goBack = () => {
-  router.go(-1)
-}
-
-const toggleEdit = () => {
-  isEdit.value = !isEdit.value
-}
-
-const removeItem = async (itemId: string) => {
-  try {
-    await cart.removeFromCart(itemId)
-  } catch (err) {
-    console.error('Error removing item:', err)
+interface CartItem {
+  id: string
+  productId: string
+  name: string
+  price: number
+  images: string[]
+  sellerId: string
+  sellerUsername: string
+  seller?: {
+    name: string
+    avatarUrl: string
   }
+  createdAt: Date
 }
 
-const updateQuantity = async (itemId: string, quantity: number) => {
-  if (quantity < 1) return
-  await cart.updateQuantity(itemId, quantity)
-}
-
-const startChat = (item: CartItem) => {
-  router.push({
-    name: 'chat',
-    params: {
-      receiverId: item.sellerId
+export default defineComponent({
+  name: 'CartPage',
+  data() {
+    return {
+      activeTab: 'proses',
+      isEdit: false,
+      loading: true,
+      error: null as string | null,
+      cartItems: [] as CartItem[]
+    }
+  },
+  computed: {
+    groupedItems() {
+      const grouped: { [key: string]: CartItem[] } = {}
+      this.cartItems.forEach(item => {
+        const sellerUsername = item.sellerUsername || 'unknown'
+        if (!grouped[sellerUsername]) {
+          grouped[sellerUsername] = []
+        }
+        grouped[sellerUsername].push(item)
+      })
+      return grouped
+    }
+  },
+  methods: {
+    goBack() {
+      this.$router.go(-1)
     },
-    state: {
-      productInfo: {
-        name: item.name,
-        price: item.price,
-        image: item.image
+    toggleEdit() {
+      this.isEdit = !this.isEdit
+    },
+    async fetchCartItems() {
+      try {
+        this.loading = true
+        this.error = null
+
+        const auth = getAuth()
+        const user = auth.currentUser
+
+        if (!user) {
+          this.cartItems = []
+          return
+        }
+
+        const cartRef = collection(db, 'carts', user.uid, 'items')
+        const cartSnapshot = await getDocs(cartRef)
+
+        this.cartItems = cartSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as CartItem))
+      } catch (err) {
+        this.error = 'Failed to load cart items'
+        console.error(err)
+      } finally {
+        this.loading = false
       }
+    },
+    async removeItem(itemId: string) {
+      try {
+        const auth = getAuth()
+        const user = auth.currentUser
+
+        if (!user) return
+
+        const cartItemRef = doc(db, 'carts', user.uid, 'items', itemId)
+        await deleteDoc(cartItemRef)
+        await this.fetchCartItems()
+      } catch (err) {
+        console.error('Failed to remove item:', err)
+      }
+    },
+    async completeOrder(items: CartItem[]) {
+      try {
+        const auth = getAuth()
+        const user = auth.currentUser
+
+        if (!user) return
+
+        const batch = writeBatch(db)
+        const cartDoneRef = collection(db, 'users', user.uid, 'cart_done')
+
+        for (const item of items) {
+          // Add to cart_done
+          const newDoneRef = doc(cartDoneRef)
+          batch.set(newDoneRef, {
+            ...item,
+            completedAt: serverTimestamp()
+          })
+
+          // Remove from cart
+          const cartItemRef = doc(db, 'carts', user.uid, 'items', item.id)
+          batch.delete(cartItemRef)
+
+          // Update seller's totalProductSold
+          if (item.sellerId) {
+            const sellerRef = doc(db, 'users', item.sellerId)
+            batch.update(sellerRef, {
+              totalProductSold: increment(1)
+            })
+          }
+        }
+
+        await batch.commit()
+        // Navigate to CartDone page after successful completion
+        this.$router.push({ name: 'CartDone' })
+      } catch (err) {
+        console.error('Failed to complete order:', err)
+        this.error = 'Gagal menyelesaikan pesanan'
+      }
+    },
+    openChat(item: CartItem) {
+      this.$router.push({
+        name: 'ChatDetail',
+        params: {
+          receiverId: item.sellerId
+        },
+        query: {
+          name: item.seller?.name,
+          avatarUrl: item.seller?.avatarUrl,
+          productInfo: JSON.stringify({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            images: item.images,
+            sellerName: item.seller?.name,
+            sellerUsername: item.sellerUsername,
+            sellerId: item.sellerId
+          })
+        }
+      })
+    },
+    goToCartDone() {
+      this.$router.push({ name: 'CartDone' })
     }
-  })
-}
-
-const checkout = (item: CartItem) => {
-  router.push({
-    name: 'checkout',
-    params: {
-      itemId: item.id
-    }
-  })
-}
-
-const checkoutAll = () => {
-  router.push({
-    name: 'checkout',
-    params: {
-      type: 'all'
-    }
-  })
-}
-
-const handleImageError = (e: Event) => {
-  const target = e.target as HTMLImageElement
-  target.src = '/placeholder.png'
-}
-
-const formatPrice = (price: number) => {
-  return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-}
+  },
+  async created() {
+    await this.fetchCartItems()
+  }
+})
 </script>
 
 <style scoped>
 .cart-page {
-  background-color: #f8f9fa;
+  background-color: #f5f5f5;
   min-height: 100vh;
   padding: 32px 0;
   font-family: sans-serif;
 }
 
 .cart-container {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 0 16px;
+  max-width: 1000px;
+  margin: 32px auto;
+  padding: 0 24px 32px 24px;
+  width: 100%;
+  box-sizing: border-box;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
 }
 
 .header {
@@ -186,6 +263,9 @@ const formatPrice = (price: number) => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 24px;
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  padding: 24px 0 0 0;
 }
 
 .back-btn {
@@ -196,163 +276,178 @@ const formatPrice = (price: number) => {
   padding: 8px;
 }
 
-.header h2 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: bold;
-}
-
 .edit-btn {
-  color: #007bff;
+  color: #7c4dff;
   cursor: pointer;
+  font-weight: 500;
+  font-size: 16px;
+  padding: 8px;
 }
 
 .tab-bar {
   display: flex;
-  background: white;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  overflow: hidden;
+  justify-content: flex-start;
+  gap: 48px;
+  margin-bottom: 32px;
+  border-bottom: 2px solid #eee;
+  padding: 0;
+  background: #fff;
 }
 
 .tab-bar span {
-  flex: 1;
-  text-align: center;
-  padding: 12px;
+  padding: 12px 24px;
   cursor: pointer;
-  color: #666;
+  color: #888;
+  font-size: 16px;
+  position: relative;
 }
 
-.tab-bar span.active {
+.tab-bar .active {
   color: #000;
   font-weight: bold;
-  border-bottom: 2px solid #000;
+}
+
+.tab-bar .active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: #111;
 }
 
 .cart-group {
   background: white;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 16px;
+  padding: 32px 40px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+.seller-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.seller-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  margin-right: 12px;
+}
+
+.seller-name {
+  font-weight: 500;
+  font-size: 18px;
 }
 
 .product-card {
   display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
   position: relative;
+  background: #f9f9f9;
+  padding: 16px;
+  border-radius: 12px;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
 .product-img {
-  width: 100px;
-  height: 100px;
-  object-fit: cover;
+  width: 120px;
+  height: 120px;
   border-radius: 8px;
+  object-fit: cover;
+  margin-right: 20px;
 }
 
 .product-details {
-  flex: 1;
+  flex-grow: 1;
 }
 
 .product-title {
-  margin: 0 0 8px;
-  font-size: 16px;
+  margin: 0;
+  font-weight: 600;
+  font-size: 18px;
 }
 
 .product-price {
-  margin: 0;
-  color: #ff6b00;
-  font-weight: bold;
-}
-
-.quantity-control {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.quantity-control button {
-  width: 24px;
-  height: 24px;
-  border: 1px solid #ddd;
-  background: white;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.quantity-control button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.quantity-control span {
-  min-width: 24px;
-  text-align: center;
+  margin: 8px 0 0 0;
+  color: #444;
+  font-size: 16px;
 }
 
 .delete-btn {
   position: absolute;
-  top: 0;
-  right: 0;
-  background: none;
+  top: 8px;
+  right: 8px;
+  background: #ffdddd;
   border: none;
-  font-size: 24px;
-  color: #dc3545;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 20px;
   cursor: pointer;
-  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .actions {
   display: flex;
-  gap: 12px;
-}
-
-.chat-btn,
-.checkout-btn {
-  flex: 1;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
+  justify-content: flex-start;
+  gap: 16px;
+  margin-top: 20px;
 }
 
 .chat-btn {
-  background: #f8f9fa;
-  color: #000;
+  flex: 1;
+  padding: 12px 24px;
+  border: 1px solid #111;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.2s;
 }
 
-.checkout-btn {
-  background: #000;
+.chat-btn:hover {
+  background-color: #f5f5f5;
+}
+
+.selesai-btn {
+  flex: 1;
+  background: #111;
   color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.2s;
 }
 
-.loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
+.selesai-btn:hover {
+  background-color: #333;
 }
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.error,
 .empty {
+  text-align: center;
+  color: #aaa;
+  margin-top: 60px;
+  font-size: 18px;
+}
+
+.loading, .error {
   text-align: center;
   padding: 40px;
   color: #666;
+}
+
+.error {
+  color: #ff4444;
 }
 </style>

@@ -1,55 +1,47 @@
 <template>
-  <div class="cart-done">
-    <div v-if="!user" class="no-user">
-      Silakan login untuk melihat pesanan selesai.
-    </div>
-    <div v-else>
-      <div v-if="loading" class="loading">
-        <div class="spinner"></div>
+  <div class="cart-done-page">
+    <div class="cart-container">
+      <!-- Header -->
+      <div class="header">
+        <button class="back-btn" @click="goBack">←</button>
+        <h2>Keranjang</h2>
       </div>
+
+      <!-- Tab Bar -->
+      <div class="tab-bar">
+        <span @click="goToCart" :class="{ active: false }">Proses</span>
+        <span :class="{ active: true }">Selesai</span>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="loading" class="loading">
+        Loading...
+      </div>
+
+      <!-- Error State -->
       <div v-else-if="error" class="error">
         {{ error }}
       </div>
-      <div v-else-if="!items.length" class="no-items">
+
+      <!-- Empty State -->
+      <div v-else-if="!completedOrders.length" class="empty">
         Belum ada pesanan selesai.
       </div>
-      <div v-else class="items-list">
-        <div v-for="item in items" :key="item.id" class="item-card">
-          <div class="seller-info">
-            <img
-              :src="item.seller?.avatarUrl || '/default-avatar.png'"
-              :alt="item.seller?.name || 'Seller'"
-              class="seller-avatar"
-              @error="handleImageError"
-            >
-            <span class="seller-name">{{ item.seller?.name || 'Unknown Seller' }}</span>
-          </div>
 
-          <div class="product-card">
-            <div class="product-images">
-              <img
-                v-if="item.images && item.images.length"
-                :src="item.images[0]"
-                :alt="item.name"
-                class="product-img"
-                @error="handleImageError"
-              >
-              <div v-else class="no-image">
-                <i class="fas fa-image"></i>
-              </div>
-            </div>
-            <div class="product-details">
-              <h3 class="product-title">{{ item.name || 'No Name' }}</h3>
-              <p class="product-price">Rp {{ formatPrice(item.price) }}</p>
-              <p class="completion-date">
-                Selesai pada: {{ formatDate(item.completedAt) }}
-              </p>
-            </div>
-          </div>
-
-          <div class="actions">
-            <button class="chat-btn" @click="startChat(item)">Chat penjual</button>
-            <button class="buy-again-btn" @click="buyAgain(item)">Beli lagi</button>
+      <!-- Completed Orders List -->
+      <div v-else class="orders-list">
+        <div v-for="order in completedOrders" :key="order.id" class="order-card">
+          <img
+            class="order-image"
+            :src="order.images?.[0] || 'https://via.placeholder.com/60'"
+            alt="product"
+          />
+          <div class="order-details">
+            <h3 class="order-title">{{ order.name || 'No Name' }}</h3>
+            <p class="order-price">Rp {{ order.price || '-' }}</p>
+            <p class="order-date">
+              {{ formatDate(order.completedAt) }}
+            </p>
           </div>
         </div>
       </div>
@@ -57,305 +49,215 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
-import { db, auth } from '../firebase'
-import { useRouter } from 'vue-router'
+<script lang="ts">
+import { defineComponent } from 'vue'
+import { collection, getDocs, query, orderBy } from 'firebase/firestore'
+import { getAuth } from 'firebase/auth'
+import { db } from '@/firebase'
 
-interface CartDoneItem {
+interface CompletedOrder {
   id: string
   name: string
   price: number
   images: string[]
-  sellerId: string
+  completedAt: Date
   seller?: {
     name: string
-    avatarUrl?: string
+    avatarUrl: string
   }
-  completedAt: Date
 }
 
-const router = useRouter()
-const user = ref(auth.currentUser)
-const items = ref<CartDoneItem[]>([])
-const loading = ref(true)
-const error = ref('')
-
-onMounted(() => {
-  if (!user.value) return
-
-  const q = query(
-    collection(db, 'users', user.value.uid, 'cart_done'),
-    orderBy('completedAt', 'desc')
-  )
-
-  const unsubscribe = onSnapshot(q,
-    (snapshot) => {
-      items.value = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as CartDoneItem))
-      loading.value = false
-    },
-    (err) => {
-      console.error('Error fetching cart done items:', err)
-      error.value = 'Terjadi kesalahan.'
-      loading.value = false
+export default defineComponent({
+  name: 'CartDonePage',
+  data() {
+    return {
+      loading: true,
+      error: null as string | null,
+      completedOrders: [] as CompletedOrder[]
     }
-  )
-
-  // Cleanup subscription on component unmount
-  return () => unsubscribe()
-})
-
-const handleImageError = (e: Event) => {
-  const target = e.target as HTMLImageElement
-  target.src = '/placeholder.png'
-}
-
-const formatPrice = (price: number) => {
-  return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-}
-
-const formatDate = (date: Date) => {
-  if (!date) return 'Unknown date'
-  return new Date(date).toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
-const startChat = (item: CartDoneItem) => {
-  router.push({
-    name: 'chat',
-    params: {
-      receiverId: item.sellerId
+  },
+  methods: {
+    goBack() {
+      this.$router.go(-1)
     },
-    state: {
-      productInfo: {
-        name: item.name,
-        price: item.price,
-        images: item.images
+    goToCart() {
+      this.$router.push({ name: 'cart' })
+    },
+    formatDate(date: Date | undefined) {
+      if (!date) return ''
+      return new Date(date).toLocaleDateString('id-ID', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    },
+    async fetchCompletedOrders() {
+      try {
+        this.loading = true
+        this.error = null
+
+        const auth = getAuth()
+        const user = auth.currentUser
+
+        if (!user) {
+          this.error = 'Silakan login untuk melihat pesanan selesai.'
+          return
+        }
+
+        const cartDoneRef = collection(db, 'users', user.uid, 'cart_done')
+        const q = query(cartDoneRef, orderBy('completedAt', 'desc'))
+        const snapshot = await getDocs(q)
+
+        this.completedOrders = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as CompletedOrder))
+      } catch (err) {
+        this.error = 'Terjadi kesalahan.'
+        console.error(err)
+      } finally {
+        this.loading = false
       }
     }
-  })
-}
-
-const buyAgain = (item: CartDoneItem) => {
-  router.push({
-    name: 'product-detail',
-    params: {
-      id: item.id
-    }
-  })
-}
+  },
+  async created() {
+    await this.fetchCompletedOrders()
+  }
+})
 </script>
 
 <style scoped>
-.cart-done {
-  padding: 16px;
+.cart-done-page {
+  background-color: #f5f5f5;
   min-height: 100vh;
-  background-color: #f8f9fa;
+  padding: 32px 0;
+  font-family: sans-serif;
+  box-sizing: border-box;
 }
 
-.no-user,
-.error,
-.no-items {
+.cart-container {
+  max-width: 1000px;
+  margin: 32px auto;
+  padding: 0 24px 32px 24px;
+  width: 100%;
+  box-sizing: border-box;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  padding: 24px 0 0 0;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 8px;
+  margin-right: 16px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: bold;
+  flex: 1;
+  text-align: center;
+}
+
+.tab-bar {
+  display: flex;
+  justify-content: flex-start;
+  gap: 48px;
+  margin-bottom: 32px;
+  border-bottom: 2px solid #eee;
+  padding: 0;
+  background: #fff;
+}
+
+.tab-bar span {
+  padding: 12px 24px;
+  cursor: pointer;
+  color: #888;
+  font-size: 16px;
+  position: relative;
+}
+
+.tab-bar .active {
+  color: #000;
+  font-weight: bold;
+}
+
+.tab-bar .active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: #111;
+}
+
+.loading, .error, .empty {
   text-align: center;
   padding: 40px;
-  color: #666;
-  font-size: 16px;
+  color: #aaa;
+  font-size: 18px;
 }
 
-.loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
+.error {
+  color: #ff4444;
 }
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.items-list {
+.orders-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  max-width: 600px;
-  margin: 0 auto;
+  gap: 16px;
 }
 
-.item-card {
+.order-card {
   background: white;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.order-image {
+  width: 60px;
+  height: 60px;
   border-radius: 8px;
-  padding: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.seller-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #eee;
-}
-
-.seller-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
   object-fit: cover;
 }
 
-.seller-name {
-  font-weight: 500;
-  color: #333;
-  font-size: 14px;
-}
-
-.product-card {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.product-images {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.product-img {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 6px;
-}
-
-.no-image {
-  width: 80px;
-  height: 80px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-  font-size: 20px;
-}
-
-.product-details {
+.order-details {
   flex: 1;
-  min-width: 0; /* Prevent text overflow */
 }
 
-.product-title {
-  margin: 0 0 4px;
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.product-price {
-  margin: 0 0 4px;
-  color: #ff6b00;
-  font-weight: bold;
+.order-title {
+  margin: 0 0 8px 0;
   font-size: 16px;
+  font-weight: 600;
 }
 
-.completion-date {
+.order-price {
+  margin: 0 0 4px 0;
+  color: #444;
+  font-size: 14px;
+}
+
+.order-date {
   margin: 0;
-  color: #666;
+  color: #888;
   font-size: 12px;
-}
-
-.actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #eee;
-}
-
-.chat-btn,
-.buy-again-btn {
-  flex: 1;
-  padding: 8px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  transition: background-color 0.2s;
-}
-
-.chat-btn {
-  background: #f8f9fa;
-  color: #000;
-}
-
-.chat-btn:hover {
-  background: #e9ecef;
-}
-
-.buy-again-btn {
-  background: #000;
-  color: white;
-}
-
-.buy-again-btn:hover {
-  background: #333;
-}
-
-/* Responsive styles */
-@media (max-width: 480px) {
-  .cart-done {
-    padding: 12px;
-  }
-
-  .item-card {
-    padding: 10px;
-  }
-
-  .product-img,
-  .no-image {
-    width: 70px;
-    height: 70px;
-  }
-
-  .product-title {
-    font-size: 13px;
-  }
-
-  .product-price {
-    font-size: 15px;
-  }
-
-  .completion-date {
-    font-size: 11px;
-  }
-
-  .chat-btn,
-  .buy-again-btn {
-    padding: 6px;
-    font-size: 12px;
-  }
 }
 </style>
