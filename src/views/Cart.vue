@@ -3,7 +3,6 @@
     <div class="cart-container">
       <!-- Header -->
       <div class="header">
-        <button class="back-btn" @click="goBack">←</button>
         <h2>Keranjang</h2>
         <span class="edit-btn" @click="toggleEdit">{{ isEdit ? 'Selesai' : 'Edit' }}</span>
       </div>
@@ -14,23 +13,18 @@
         <span :class="{ active: activeTab === 'selesai' }" @click="goToCartDone">Selesai</span>
       </div>
 
-      <!-- Loading State -->
-      <div v-if="loading" class="loading">
-        Loading...
-      </div>
-
       <!-- Error State -->
-      <div v-else-if="error" class="error">
+      <div v-if="error" class="error">
         {{ error }}
       </div>
 
       <!-- Empty State -->
-      <div v-else-if="!groupedItems.length" class="empty">
+      <div v-if="Object.keys(groupedItems).length === 0" class="empty">
         Keranjang kosong
       </div>
 
       <!-- Cart Groups -->
-      <template v-else>
+      <div v-else>
         <div v-for="(items, sellerUsername) in groupedItems" :key="sellerUsername" class="cart-group">
           <div class="seller-info">
             <img
@@ -50,8 +44,15 @@
             <div class="product-details">
               <p class="product-title">{{ item.name }}</p>
               <p class="product-price">Rp {{ item.price }}</p>
+              <div class="hapus-btn-wrapper" v-if="isEdit">
+                <button
+                  class="hapus-btn"
+                  @click="removeItem(item.id)"
+                >
+                  Hapus
+                </button>
+              </div>
             </div>
-            <button v-if="isEdit" class="delete-btn" @click="removeItem(item.id)">×</button>
           </div>
 
           <div class="actions">
@@ -59,28 +60,25 @@
             <button class="selesai-btn" @click="completeOrder(items)">Selesai</button>
           </div>
         </div>
-      </template>
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue'
+import { defineComponent, ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   collection,
   doc,
   getDocs,
   deleteDoc,
-  addDoc,
-  query,
-  where,
-  getDoc,
   serverTimestamp,
   writeBatch,
-  increment
+  increment,
+  onSnapshot
 } from 'firebase/firestore'
-import { getAuth } from 'firebase/auth'
-import { db } from '@/firebase'
+import { db, auth } from '@/firebase'
 
 interface CartItem {
   id: string
@@ -99,19 +97,29 @@ interface CartItem {
 
 export default defineComponent({
   name: 'CartPage',
-  data() {
-    return {
-      activeTab: 'proses',
-      isEdit: false,
-      loading: true,
-      error: null as string | null,
-      cartItems: [] as CartItem[]
-    }
-  },
-  computed: {
-    groupedItems() {
+  setup() {
+    const router = useRouter()
+    const activeTab = ref('proses')
+    const isEdit = ref(false)
+    const loading = ref(true)
+    const error = ref<string | null>(null)
+    const cartItems = ref<CartItem[]>([])
+
+    onMounted(() => {
+      const user = auth.currentUser
+      if (!user) return
+      const cartRef = collection(db, 'carts', user.uid, 'items')
+      onSnapshot(cartRef, (snapshot) => {
+        cartItems.value = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as CartItem))
+      })
+    })
+
+    const groupedItems = computed(() => {
       const grouped: { [key: string]: CartItem[] } = {}
-      this.cartItems.forEach(item => {
+      cartItems.value.forEach(item => {
         const sellerUsername = item.sellerUsername || 'unknown'
         if (!grouped[sellerUsername]) {
           grouped[sellerUsername] = []
@@ -119,61 +127,24 @@ export default defineComponent({
         grouped[sellerUsername].push(item)
       })
       return grouped
-    }
-  },
-  methods: {
-    goBack() {
-      this.$router.go(-1)
-    },
-    toggleEdit() {
-      this.isEdit = !this.isEdit
-    },
-    async fetchCartItems() {
+    })
+
+    const removeItem = async (itemId: string) => {
       try {
-        this.loading = true
-        this.error = null
-
-        const auth = getAuth()
         const user = auth.currentUser
-
-        if (!user) {
-          this.cartItems = []
-          return
-        }
-
-        const cartRef = collection(db, 'carts', user.uid, 'items')
-        const cartSnapshot = await getDocs(cartRef)
-
-        this.cartItems = cartSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as CartItem))
-      } catch (err) {
-        this.error = 'Failed to load cart items'
-        console.error(err)
-      } finally {
-        this.loading = false
-      }
-    },
-    async removeItem(itemId: string) {
-      try {
-        const auth = getAuth()
-        const user = auth.currentUser
-
         if (!user) return
 
         const cartItemRef = doc(db, 'carts', user.uid, 'items', itemId)
         await deleteDoc(cartItemRef)
-        await this.fetchCartItems()
+        await fetchCartItems()
       } catch (err) {
         console.error('Failed to remove item:', err)
       }
-    },
-    async completeOrder(items: CartItem[]) {
-      try {
-        const auth = getAuth()
-        const user = auth.currentUser
+    }
 
+    const completeOrder = async (items: CartItem[]) => {
+      try {
+        const user = auth.currentUser
         if (!user) return
 
         const batch = writeBatch(db)
@@ -202,14 +173,15 @@ export default defineComponent({
 
         await batch.commit()
         // Navigate to CartDone page after successful completion
-        this.$router.push({ name: 'CartDone' })
+        router.push({ name: 'CartDone' })
       } catch (err) {
         console.error('Failed to complete order:', err)
-        this.error = 'Gagal menyelesaikan pesanan'
+        error.value = 'Gagal menyelesaikan pesanan'
       }
-    },
-    openChat(item: CartItem) {
-      this.$router.push({
+    }
+
+    const openChat = (item: CartItem) => {
+      router.push({
         name: 'ChatDetail',
         params: {
           receiverId: item.sellerId
@@ -228,13 +200,69 @@ export default defineComponent({
           })
         }
       })
-    },
-    goToCartDone() {
-      this.$router.push({ name: 'CartDone' })
     }
-  },
-  async created() {
-    await this.fetchCartItems()
+
+    const goToCartDone = () => {
+      router.push({ name: 'CartDone' })
+    }
+
+    const fetchCartItems = async () => {
+      try {
+        loading.value = true
+        error.value = null
+
+        const user = auth.currentUser
+
+        if (!user) {
+          cartItems.value = []
+          return
+        }
+
+        const cartRef = collection(db, 'carts', user.uid, 'items')
+        const cartSnapshot = await getDocs(cartRef)
+
+        cartItems.value = cartSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as CartItem))
+      } catch (err) {
+        error.value = 'Failed to load cart items'
+        console.error(err)
+      } finally {
+        loading.value = false
+      }
+    }
+
+    const toggleEdit = () => {
+      isEdit.value = !isEdit.value
+    }
+
+    const removeFromCart = async (itemId: string) => {
+      const user = auth.currentUser
+      if (!user) return
+      await deleteDoc(doc(db, 'carts', user.uid, 'items', itemId))
+    }
+
+    const goBack = () => {
+      router.go(-1)
+    }
+
+    return {
+      activeTab,
+      isEdit,
+      loading,
+      error,
+      cartItems,
+      groupedItems,
+      removeItem,
+      completeOrder,
+      openChat,
+      goToCartDone,
+      fetchCartItems,
+      toggleEdit,
+      removeFromCart,
+      goBack
+    }
   }
 })
 </script>
@@ -261,19 +289,19 @@ export default defineComponent({
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   margin-bottom: 32px;
   background: #fff;
   border-radius: 16px 16px 0 0;
   padding: 32px 0 0 0;
 }
 
-.back-btn {
-  background: none;
-  border: none;
+h2 {
+  margin: 0;
   font-size: 24px;
-  cursor: pointer;
-  padding: 8px;
+  font-weight: bold;
+  flex: 1;
+  text-align: center;
 }
 
 .edit-btn {
@@ -380,20 +408,28 @@ export default defineComponent({
   font-size: 16px;
 }
 
-.delete-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: #ffdddd;
-  border: none;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  font-size: 20px;
-  cursor: pointer;
+.hapus-btn-wrapper {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.hapus-btn {
+  background: #ff4444;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: auto;
+  min-width: 80px;
+}
+
+.hapus-btn:hover {
+  background: #d32f2f;
 }
 
 .actions {
@@ -439,12 +475,6 @@ export default defineComponent({
   color: #aaa;
   margin-top: 60px;
   font-size: 18px;
-}
-
-.loading, .error {
-  text-align: center;
-  padding: 40px;
-  color: #666;
 }
 
 .error {

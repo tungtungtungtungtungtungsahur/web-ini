@@ -1,6 +1,5 @@
 <template>
   <div class="chat-detail">
-    <!-- Header -->
     <div class="header">
       <button class="back-btn" @click="goBack">←</button>
       <div class="user-info">
@@ -12,7 +11,6 @@
       </div>
     </div>
 
-    <!-- Product Info -->
     <div v-if="productInfo" class="product-info">
       <img :src="productInfo.images?.[0] || '/placeholder.png'" alt="product" class="product-img" />
       <div class="product-details">
@@ -21,22 +19,24 @@
       </div>
     </div>
 
-    <!-- Loading State -->
     <div v-if="loading" class="loading">
       <div class="spinner"></div>
     </div>
 
-    <!-- Error State -->
     <div v-else-if="error" class="error">
       {{ error }}
     </div>
 
-    <!-- Messages -->
     <div v-else class="messages" ref="messagesContainer">
       <div v-for="message in messages" :key="message.id"
            :class="['message', message.senderId === currentUser?.uid ? 'sent' : 'received']">
         <div class="message-content">
-          <p>{{ message.message }}</p>
+          <p v-if="message.location">
+            <a :href="message.location.mapsLink" target="_blank" rel="noopener noreferrer">
+              📍 Lihat Lokasi
+            </a>
+          </p>
+          <p v-else>{{ message.message }}</p>
           <span class="timestamp">{{ formatTime(message.timestamp) }}</span>
           <span v-if="message.senderId === currentUser?.uid" class="status">
             {{ message.read ? '✓✓' : '✓' }}
@@ -45,7 +45,6 @@
       </div>
     </div>
 
-    <!-- Input Area -->
     <div class="input-area">
       <button class="location-button" @click="toggleLocationPicker" :disabled="sending">
         <svg viewBox="0 0 24 24" width="24" height="24">
@@ -78,7 +77,6 @@
       </button>
     </div>
 
-    <!-- Location Picker Modal -->
     <div v-if="showLocationPicker" class="location-modal">
       <div class="location-modal-content">
         <div class="location-modal-header">
@@ -86,7 +84,6 @@
           <button class="close-button" @click="toggleLocationPicker">×</button>
         </div>
 
-        <!-- Search Section -->
         <div class="search-section">
           <div class="search-container">
             <input
@@ -108,7 +105,18 @@
             </button>
           </div>
 
-          <!-- Search Results -->
+          <div class="location-recommendations" v-if="!locationSearch && recommendations.length > 0">
+            <div class="recommendations-header">Rekomendasi Lokasi Terdekat</div>
+            <div v-for="place in recommendations" :key="place.osm_id"
+                 class="recommendation-item" @click="selectLocation(place)">
+              <div class="result-icon">📍</div>
+              <div class="result-details">
+                <div class="result-name">{{ place.display_name }}</div>
+                <div class="result-address">{{ place.address }}</div>
+              </div>
+            </div>
+          </div>
+
           <div class="search-results" v-if="locationSearch && searchResults.length > 0">
             <div v-for="place in searchResults" :key="place.osm_id"
                  class="search-result-item" @click="selectLocation(place)">
@@ -121,14 +129,12 @@
           </div>
         </div>
 
-        <!-- Map Section -->
         <div class="map-section">
           <div class="map-container">
             <div id="map" class="map"></div>
           </div>
         </div>
 
-        <!-- Location Info -->
         <div class="location-info-container" v-if="selectedLocation">
           <div class="location-info">
             <div class="location-header">
@@ -141,9 +147,8 @@
           </div>
         </div>
 
-        <!-- Action Buttons -->
         <div class="action-buttons">
-          <button class="send-location-button" @click="sendLocation" :disabled="!selectedLocation">
+          <button class="send-location-button" @click="sendLocation">
             Kirim Lokasi
           </button>
         </div>
@@ -164,7 +169,10 @@ import {
   query,
   orderBy,
   onSnapshot,
-  serverTimestamp
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  increment
 } from 'firebase/firestore'
 import { FirestoreError } from 'firebase/firestore'
 
@@ -176,6 +184,13 @@ interface Message {
     toDate: () => Date
   }
   read: boolean
+  location?: {
+    lat: number
+    lng: number
+    name?: string
+    address?: string
+    mapsLink?: string
+  }
 }
 
 interface User {
@@ -209,7 +224,7 @@ interface SearchResult {
 
 interface Leaflet {
   map: (id: string, options: { center: [number, number]; zoom: number; zoomControl: boolean }) => LeafletMap
-  tileLayer: (url: string, options: { attribution: string; maxZoom: number }) => unknown
+  tileLayer: (url: string, options: { attribution: string; maxZoom: number }) => { addTo: (map: LeafletMap) => void }
   control: {
     layers: (baseMaps: Record<string, unknown>) => { addTo: (map: LeafletMap) => void }
     zoom: (options: { position: string }) => { addTo: (map: LeafletMap) => void }
@@ -234,6 +249,7 @@ interface LeafletMarker {
   addTo: (map: LeafletMap) => void
   remove: () => void
   isDragging: () => boolean
+  getLatLng: () => { lat: number; lng: number }
 }
 
 interface LeafletEvent {
@@ -271,6 +287,7 @@ export default defineComponent({
     const searchTimeout = ref<number | null>(null)
     const mapInitialized = ref(false)
     const marker = ref<LeafletMarker | null>(null)
+    const recommendations = ref<SearchResult[]>([])
 
     const formatPrice = (price: number) => {
       return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
@@ -303,19 +320,46 @@ export default defineComponent({
       const messageText = newMessage.value.trim()
       newMessage.value = ''
 
-      const messageData = {
-        senderId: currentUser.uid,
-        message: messageText,
-        timestamp: serverTimestamp(),
-        read: false
-      }
-
       try {
+        const chatRef = doc(db, 'chats', chatId.value)
+        const chatDoc = await getDoc(chatRef)
+
+        const messageData = {
+          senderId: currentUser.uid,
+          message: messageText,
+          timestamp: serverTimestamp(),
+          read: false
+        }
+
         await addDoc(collection(db, 'chats', chatId.value, 'messages'), messageData)
+
+        if (!chatDoc.exists()) {
+          await setDoc(chatRef, {
+            participants: [currentUser.uid, receiver.value.id],
+            productId: route.params.productId || '',
+            lastMessage: {
+              message: messageText,
+              timestamp: serverTimestamp(),
+              read: false,
+              senderId: currentUser.uid
+            },
+            unreadCount: 1
+          })
+        } else {
+          await updateDoc(chatRef, {
+            lastMessage: {
+              message: messageText,
+              timestamp: serverTimestamp(),
+              read: false,
+              senderId: currentUser.uid
+            },
+            unreadCount: increment(1)
+          })
+        }
       } catch (err) {
         console.error('Error sending message:', err)
         error.value = 'Gagal mengirim pesan. Silakan coba lagi.'
-        newMessage.value = messageText // Restore the message if sending failed
+        newMessage.value = messageText
       } finally {
         sending.value = false
       }
@@ -333,14 +377,12 @@ export default defineComponent({
           throw new Error('ID penerima tidak valid')
         }
 
-        // Get receiver info
         const receiverDoc = await getDoc(doc(db, 'users', receiverId))
         if (!receiverDoc.exists()) {
           throw new Error('Data penerima tidak ditemukan')
         }
         receiver.value = { id: receiverDoc.id, ...receiverDoc.data() } as User
 
-        // Get product info if available
         if (productId) {
           const productDoc = await getDoc(doc(db, 'products', productId))
           if (productDoc.exists()) {
@@ -348,11 +390,9 @@ export default defineComponent({
           }
         }
 
-        // Create or get chat ID
         const users = [currentUser?.uid, receiverId].sort()
         chatId.value = `${users[0]}_${users[1]}_${productId || ''}`
 
-        // Listen to messages
         const q = query(
           collection(db, 'chats', chatId.value, 'messages'),
           orderBy('timestamp', 'asc')
@@ -376,12 +416,50 @@ export default defineComponent({
       }
     }
 
+    const loadRecommendations = async () => {
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+          })
+        })
+
+        const { latitude, longitude } = position.coords
+
+        const nearbyResponse = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent('Jakarta')}&countrycodes=id&limit=5&viewbox=${longitude-0.1},${latitude+0.1};${longitude+0.1},${latitude-0.1}&bounded=1`
+        )
+        const nearbyData = await nearbyResponse.json() as SearchResult[]
+
+        recommendations.value = nearbyData.map((place) => ({
+          osm_id: place.osm_id,
+          display_name: place.display_name.split(',')[0],
+          address: place.display_name,
+          lat: place.lat,
+          lon: place.lon
+        }))
+
+        console.log('Recommendations loaded:', recommendations.value)
+      } catch (err) {
+        console.error('Error loading recommendations:', err)
+      }
+    }
+
     const toggleLocationPicker = () => {
       showLocationPicker.value = !showLocationPicker.value
-      if (showLocationPicker.value && !mapInitialized.value) {
+      if (showLocationPicker.value) {
         nextTick(() => {
           console.log("Attempting to initialize map...");
-          initMap()
+          if (!mapInitialized.value) {
+            initMap()
+          }
+          if (route.query.fromList === 'true') {
+            centerOnUserLocation()
+          } else {
+            loadRecommendations()
+          }
         })
       }
     }
@@ -390,13 +468,11 @@ export default defineComponent({
       if (!mapInitialized.value) {
         console.log("initMap called, mapInitialized is", mapInitialized.value);
 
-        // Load Leaflet CSS
         const link = document.createElement('link')
         link.rel = 'stylesheet'
         link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
         document.head.appendChild(link)
 
-        // Load Leaflet JS
         const script = document.createElement('script')
         script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
         script.onload = () => {
@@ -406,11 +482,9 @@ export default defineComponent({
           if (mapElement) {
             console.log("Map element found:", mapElement);
 
-            // Ensure map container has dimensions
             mapElement.style.height = '300px'
             mapElement.style.width = '100%'
 
-            // Initialize map
             const leafletMap = L.map('map', {
               center: [-6.2088, 106.8456],
               zoom: 15,
@@ -418,31 +492,27 @@ export default defineComponent({
             })
             map.value = leafletMap
 
-            // Add Google Maps layer with place names
             const googleLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
               attribution: '© Google',
               maxZoom: 20
-            }).addTo(leafletMap)
+            })
+            googleLayer.addTo(leafletMap)
 
-            // Add Google Satellite layer
             const satelliteLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
               attribution: '© Google',
               maxZoom: 20
             })
 
-            // Add layer control
             const baseMaps = {
               "Peta": googleLayer,
               "Satelit": satelliteLayer
             }
             L.control.layers(baseMaps).addTo(leafletMap)
 
-            // Add zoom control to top right
             L.control.zoom({
               position: 'topright'
             }).addTo(leafletMap)
 
-            // Create marker icon for selected location
             const markerIcon = L.divIcon({
               className: 'custom-marker',
               html: `
@@ -457,15 +527,14 @@ export default defineComponent({
               iconAnchor: [32, 32]
             })
 
-            // Add marker for selected location
             const selectedMarker = L.marker([-6.2088, 106.8456], {
               icon: markerIcon,
               draggable: true,
               autoPan: true
-            }).addTo(leafletMap)
+            })
+            selectedMarker.addTo(leafletMap)
             marker.value = selectedMarker
 
-            // Add dragend handler for selected location marker
             selectedMarker.on('dragend', async (e: LeafletEvent) => {
               const position = e.target.getLatLng()
               await updateLocationFromCoordinates(position.lat, position.lng)
@@ -474,7 +543,6 @@ export default defineComponent({
             mapInitialized.value = true
             leafletMap.invalidateSize()
 
-            // Get initial location
             centerOnUserLocation()
           } else {
             console.error("Map element #map not found!");
@@ -491,7 +559,6 @@ export default defineComponent({
         )
         const data = await response.json()
 
-        // Extract location details from the response
         const address = data.address || {}
         const locationName = [
           address.road,
@@ -517,9 +584,15 @@ export default defineComponent({
           name: locationName || 'Lokasi yang dipilih',
           address: fullAddress
         }
+        console.log('Selected location updated:', selectedLocation.value)
       } catch (err) {
         console.error('Error getting location details:', err)
-        error.value = 'Gagal mendapatkan detail lokasi. Silakan coba lagi.'
+        selectedLocation.value = {
+          lat,
+          lng,
+          name: 'Lokasi yang dipilih',
+          address: `${lat}, ${lng}`
+        }
       }
     }
 
@@ -538,10 +611,13 @@ export default defineComponent({
           map.value.setView([latitude, longitude], 15)
           marker.value.setLatLng([latitude, longitude])
           await updateLocationFromCoordinates(latitude, longitude)
+
+          if (route.query.fromList === 'true') {
+            await sendLocation()
+          }
         }
       } catch (err) {
         console.error('Error getting current location:', err)
-        error.value = 'Gagal mendapatkan lokasi saat ini. Silakan coba lagi.'
       }
     }
 
@@ -591,23 +667,69 @@ export default defineComponent({
     }
 
     const sendLocation = async () => {
-      if (!currentUser || sending.value || !selectedLocation.value) return
+      if (!currentUser) return
 
       sending.value = true
       try {
-        const locationMessage = `Lokasi: ${selectedLocation.value.name}\n${selectedLocation.value.address}\nhttps://www.openstreetmap.org/?mlat=${selectedLocation.value.lat}&mlon=${selectedLocation.value.lng}#map=15/${selectedLocation.value.lat}/${selectedLocation.value.lng}`
+        let currentLat = -6.2088
+        let currentLng = 106.8456
+
+        if (marker.value) {
+          const position = marker.value.getLatLng()
+          currentLat = position.lat
+          currentLng = position.lng
+        }
+
+        const chatRef = doc(db, 'chats', chatId.value)
+        const chatDoc = await getDoc(chatRef)
+
+        const mapsLink = `https://maps.google.com/?q=${currentLat},${currentLng}&z=15`
+        const locationMessage = `📍 <a href="${mapsLink}" target="_blank" rel="noopener noreferrer">Lihat Lokasi Saya</a>`
 
         const messageData = {
           senderId: currentUser.uid,
           message: locationMessage,
           timestamp: serverTimestamp(),
-          read: false
+          read: false,
+          location: {
+            lat: currentLat,
+            lng: currentLng,
+            name: selectedLocation.value?.name || 'Lokasi yang dipilih',
+            address: selectedLocation.value?.address || 'Jakarta',
+            mapsLink: mapsLink
+          }
         }
 
         await addDoc(collection(db, 'chats', chatId.value, 'messages'), messageData)
+
+        if (!chatDoc.exists()) {
+          await setDoc(chatRef, {
+            participants: [currentUser.uid, receiver.value.id],
+            productId: route.params.productId || '',
+            lastMessage: {
+              message: '📍 Lokasi',
+              timestamp: serverTimestamp(),
+              read: false,
+              senderId: currentUser.uid
+            },
+            unreadCount: 1
+          })
+        } else {
+          await updateDoc(chatRef, {
+            lastMessage: {
+              message: '📍 Lokasi',
+              timestamp: serverTimestamp(),
+              read: false,
+              senderId: currentUser.uid
+            },
+            unreadCount: increment(1)
+          })
+        }
+
         showLocationPicker.value = false
         locationSearch.value = ''
         searchResults.value = []
+        selectedLocation.value = null
       } catch (err) {
         console.error('Error sending location:', err)
         error.value = 'Gagal mengirim lokasi. Silakan coba lagi.'
@@ -651,7 +773,9 @@ export default defineComponent({
       searchLocations,
       centerOnUserLocation,
       selectLocation,
-      sendLocation
+      sendLocation,
+      recommendations,
+      loadRecommendations
     }
   }
 })
@@ -668,69 +792,107 @@ export default defineComponent({
 .header {
   display: flex;
   align-items: center;
-  padding: 16px;
+  padding: 1rem;
   background: white;
   border-bottom: 1px solid #eee;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .back-btn {
   background: none;
   border: none;
-  font-size: 24px;
+  font-size: 1.5rem;
   cursor: pointer;
-  padding: 8px;
-  margin-right: 16px;
+  padding: 0.5rem;
+  margin-right: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.back-btn:hover {
+  background-color: #f0f0f0;
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .avatar {
-  width: 40px;
-  height: 40px;
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: 50%;
   object-fit: cover;
+  flex-shrink: 0;
+}
+
+.user-details {
+  min-width: 0;
+  flex: 1;
 }
 
 .user-details h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .user-details p {
   margin: 0;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .product-info {
   display: flex;
-  padding: 12px 16px;
+  padding: 0.75rem 1rem;
   background: white;
   border-bottom: 1px solid #eee;
-  gap: 12px;
+  gap: 0.75rem;
+  align-items: center;
 }
 
 .product-img {
-  width: 60px;
-  height: 60px;
-  border-radius: 8px;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.5rem;
   object-fit: cover;
+  flex-shrink: 0;
+}
+
+.product-details {
+  min-width: 0;
+  flex: 1;
 }
 
 .product-details h3 {
-  margin: 0 0 4px 0;
-  font-size: 14px;
+  margin: 0 0 0.25rem 0;
+  font-size: 0.875rem;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .price {
   margin: 0;
-  font-size: 14px;
+  font-size: 0.875rem;
   color: #ff6b00;
   font-weight: 600;
 }
@@ -738,14 +900,15 @@ export default defineComponent({
 .messages {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.5rem;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .message {
-  max-width: 70%;
+  max-width: 85%;
   display: flex;
   flex-direction: column;
 }
@@ -759,10 +922,11 @@ export default defineComponent({
 }
 
 .message-content {
-  padding: 8px 12px;
-  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
   background: white;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  word-break: break-word;
 }
 
 .message.sent .message-content {
@@ -770,10 +934,19 @@ export default defineComponent({
   color: white;
 }
 
+.message-content a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.message-content a:hover {
+  text-decoration: underline;
+}
+
 .timestamp {
-  font-size: 11px;
+  font-size: 0.625rem;
   color: #999;
-  margin-top: 4px;
+  margin-top: 0.25rem;
   align-self: flex-end;
 }
 
@@ -783,21 +956,50 @@ export default defineComponent({
 
 .input-area {
   display: flex;
-  padding: 12px;
+  padding: 0.75rem;
   background: white;
   border-top: 1px solid #eee;
-  gap: 8px;
+  gap: 0.5rem;
   align-items: center;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+}
+
+.location-button {
+  background: none;
+  border: none;
+  color: #666;
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.location-button:hover:not(:disabled) {
+  background-color: #f0f0f0;
+}
+
+.location-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .input-area input {
   flex: 1;
-  padding: 12px 16px;
+  padding: 0.75rem 1rem;
   border: 1px solid #ddd;
-  border-radius: 24px;
+  border-radius: 1.5rem;
   outline: none;
-  font-size: 15px;
+  font-size: 0.9375rem;
   transition: border-color 0.2s;
+  min-width: 0;
 }
 
 .input-area input:focus {
@@ -814,9 +1016,9 @@ export default defineComponent({
   color: white;
   border: none;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
+  width: 2.5rem;
+  height: 2.5rem;
+  min-width: 2.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -841,14 +1043,14 @@ export default defineComponent({
 }
 
 .send-icon {
-  width: 24px;
-  height: 24px;
+  width: 1.5rem;
+  height: 1.5rem;
   transition: transform 0.2s;
 }
 
 .sending-icon {
-  width: 24px;
-  height: 24px;
+  width: 1.5rem;
+  height: 1.5rem;
   animation: spin 1s linear infinite;
 }
 
@@ -857,41 +1059,17 @@ export default defineComponent({
   to { transform: rotate(360deg); }
 }
 
-/* Responsive styles */
-@media (max-width: 480px) {
-  .input-area {
-    padding: 8px;
-  }
-
-  .input-area input {
-    padding: 10px 14px;
-    font-size: 14px;
-  }
-
-  .send-button {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-  }
-
-  .send-icon,
-  .sending-icon {
-    width: 20px;
-    height: 20px;
-  }
-}
-
 .loading {
   display: flex;
   justify-content: center;
   align-items: center;
   flex: 1;
-  padding: 20px;
+  padding: 1.25rem;
 }
 
 .spinner {
-  width: 30px;
-  height: 30px;
+  width: 2rem;
+  height: 2rem;
   border: 3px solid #f3f3f3;
   border-top: 3px solid #0084ff;
   border-radius: 50%;
@@ -901,14 +1079,18 @@ export default defineComponent({
 .error {
   color: #ff3b30;
   text-align: center;
-  padding: 20px;
+  padding: 1.25rem;
   flex: 1;
+  background: white;
+  margin: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .status {
-  font-size: 12px;
+  font-size: 0.625rem;
   color: #999;
-  margin-left: 4px;
+  margin-left: 0.25rem;
 }
 
 .message.sent .status {
@@ -926,16 +1108,18 @@ export default defineComponent({
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  padding: 1rem;
 }
 
 .location-modal-content {
   background: white;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 500px;
-  max-height: 80vh;
-  overflow-y: auto;
-  padding: 20px;
+  border-radius: 1rem;
+  width: 100%;
+  max-width: 32rem;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .location-modal-header {
@@ -1196,6 +1380,195 @@ export default defineComponent({
   100% {
     transform: translate(-50%, -50%) scale(1.5);
     opacity: 0;
+  }
+}
+
+.location-recommendations {
+  margin-top: 12px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.recommendations-header {
+  padding: 12px;
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 1px solid #eee;
+}
+
+.recommendation-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.recommendation-item:hover {
+  background-color: #f5f5f5;
+}
+
+.recommendation-item:last-child {
+  border-bottom: none;
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 0.75rem;
+  }
+
+  .back-btn {
+    font-size: 1.25rem;
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .avatar {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .user-details h2 {
+    font-size: 0.875rem;
+  }
+
+  .user-details p {
+    font-size: 0.625rem;
+  }
+
+  .product-info {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .product-img {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .product-details h3 {
+    font-size: 0.75rem;
+  }
+
+  .price {
+    font-size: 0.75rem;
+  }
+
+  .messages {
+    padding: 0.75rem;
+  }
+
+  .message {
+    max-width: 90%;
+  }
+
+  .message-content {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .input-area {
+    padding: 0.5rem;
+  }
+
+  .location-button,
+  .send-button {
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+  }
+
+  .send-icon,
+  .sending-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .input-area input {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .location-modal {
+    padding: 0.5rem;
+  }
+
+  .location-content {
+    max-height: 95vh;
+  }
+
+  .search-section {
+    padding: 0.75rem;
+  }
+
+  .search-input {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .location-recommendations,
+  .search-results {
+    max-height: 10rem;
+  }
+
+  .recommendation-item,
+  .search-result-item {
+    padding: 0.5rem;
+  }
+
+  .result-name {
+    font-size: 0.75rem;
+  }
+
+  .result-address {
+    font-size: 0.625rem;
+  }
+
+  .location-info-container {
+    padding: 0.75rem;
+  }
+
+  .location-info {
+    padding: 0.5rem;
+  }
+
+  .action-buttons {
+    padding: 0.75rem;
+  }
+
+  .send-location-button {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .header {
+    padding: 0.5rem;
+  }
+
+  .back-btn {
+    font-size: 1.125rem;
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .avatar {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .product-img {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .message-content {
+    font-size: 0.75rem;
   }
 }
 </style>

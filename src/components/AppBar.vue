@@ -28,6 +28,7 @@
         </div>
         <button class="icon-btn" @click="goToMessages">
           <i class="fas fa-comment"></i>
+          <span v-if="unreadMessages > 0" class="notification-badge">{{ unreadMessages }}</span>
         </button>
         <button class="icon-btn" @click="goToCart">
           <i class="fas fa-shopping-cart"></i>
@@ -48,6 +49,7 @@ import { useRouter } from 'vue-router'
 import { auth, db } from '../firebase'
 import { doc, getDoc } from 'firebase/firestore'
 import { signOut, onAuthStateChanged } from 'firebase/auth'
+import { collection, query, where, onSnapshot } from 'firebase/firestore'
 
 const router = useRouter()
 const searchQuery = ref('')
@@ -56,6 +58,7 @@ const userName = ref('User')
 const userPhotoURL = ref('https://via.placeholder.com/40')
 const isLoggedIn = ref(false)
 const showDropdown = ref(false)
+const unreadMessages = ref(0)
 
 onMounted(() => {
   onAuthStateChanged(auth, async (user) => {
@@ -71,13 +74,33 @@ onMounted(() => {
           if (data.photoURL) userPhotoURL.value = data.photoURL
         }
       }
+
+      listenForUnreadMessages(user.uid)
     } else {
       userName.value = 'User'
       userPhotoURL.value = 'https://via.placeholder.com/40'
+      unreadMessages.value = 0
     }
   })
   document.addEventListener('click', closeDropdown)
 })
+
+const listenForUnreadMessages = (userId: string) => {
+  const chatsRef = collection(db, 'chats')
+  const q = query(chatsRef, where('participants', 'array-contains', userId))
+
+  onSnapshot(q, (snapshot) => {
+    let totalUnread = 0
+    snapshot.forEach((doc) => {
+      const chatData = doc.data()
+      const lastMessage = chatData.lastMessage
+      if (lastMessage && !lastMessage.read && lastMessage.senderId !== userId) {
+        totalUnread++
+      }
+    })
+    unreadMessages.value = totalUnread
+  })
+}
 
 const handleSearch = () => {
   if (searchQuery.value.trim()) {
@@ -92,7 +115,7 @@ const goToProfile = () => {
   showDropdown.value = false
   router.push('/akun')
 }
-const goToMessages = () => router.push('/messages')
+const goToMessages = () => router.push('/chats')
 const goToCart = () => router.push('/cart')
 const goToSell = () => router.push('/sell')
 const goHome = () => router.push('/')
@@ -211,6 +234,7 @@ const logout = async () => {
   display: flex;
   align-items: center;
   transition: color 0.2s;
+  position: relative;
 }
 .icon-btn:hover {
   color: #e53935;
@@ -278,6 +302,22 @@ const logout = async () => {
 .logout-btn {
   color: #e53935;
   font-weight: bold;
+}
+.notification-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #e53935;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
 }
 @media (max-width: 768px) {
   .app-name {

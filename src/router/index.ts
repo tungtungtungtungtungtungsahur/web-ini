@@ -4,12 +4,11 @@ import Home from '../views/Home.vue'
 import { auth } from '../firebase'
 import { onAuthStateChanged } from 'firebase/auth'
 import ChatDetail from '../views/ChatDetail.vue'
+import ChatList from '../views/ChatList.vue'
 
-// Create a loading state
 let isLoading = true
 let isAuthenticated = false
 
-// Create a promise to track initial auth state
 const authReady = new Promise((resolve) => {
   onAuthStateChanged(auth, (user) => {
     isAuthenticated = !!user
@@ -26,6 +25,7 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: Home,
+      meta: { requiresAuth: true },
     },
     {
       path: '/sell',
@@ -118,6 +118,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/chats',
+      name: 'ChatList',
+      component: ChatList,
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/chat/:receiverId/:productId?',
       name: 'ChatDetail',
       component: ChatDetail,
@@ -141,19 +147,14 @@ router.beforeEach(async (to, from, next) => {
 
   console.log('  requiresAuth:', requiresAuth, 'requiresGuest:', requiresGuest);
 
-  // If the route requires auth and user is not authenticated
   if (requiresAuth && !isAuthenticated) {
     console.log('  Requires auth but not authenticated, redirecting to /signin');
     next('/signin')
   }
-  // If the route is for guests and user is authenticated
   else if (requiresGuest && isAuthenticated) {
-    console.log('  Requires guest but authenticated, redirecting to /');
     next('/')
   }
-
   else {
-    console.log('  Proceeding with navigation.');
     next()
   }
 })

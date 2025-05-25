@@ -1,11 +1,5 @@
 <template>
-  <div class="jual-product-container">
-    <!-- Header (outside form-wrapper) -->
-    <div class="header">
-      <span class="back-arrow" @click="closeForm">&leftarrow;</span>
-      <h2>Jual Produk</h2>
-    </div>
-
+  <div class="sell-page">
     <div class="form-wrapper">
       <!-- Upload Foto -->
       <div class="photo-upload">
@@ -342,94 +336,19 @@ export default defineComponent({
 </script>
 
 <style scoped>
-.jual-product-container {
-  width: 100vw;
-  height: 100vh;
-  min-width: 0;
-  min-height: 0;
-  max-width: none;
-  max-height: none;
-  background: #f6f2fa;
-  padding: 0;
-  border-radius: 0;
-  box-sizing: border-box;
-  box-shadow: none;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  overflow-x: hidden;
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 1;
-  justify-content: center;
-  align-items: center;
-  margin-top: 0;
-  padding-top: 80px;
-  padding-left: 80px;
-}
-
-.header {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
-  margin-bottom: 20px;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  padding: 16px 24px;
-  background: #2c3e50;
-  box-sizing: border-box;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  z-index: 10;
-  justify-content: left;
-  align-items: left;
-  padding-left: 80px;
-}
-
-.back-arrow {
-  position: static;
-  font-size: 28px;
-  cursor: pointer;
-  color: #fff;
-  font-weight: 400;
-  margin-right: 50px;
-  margin-left: -50px;
-}
-
-.header h2 {
-  font-size: 1.4rem;
-  font-weight: 500;
-  color: #ffff;
-  margin: 0;
-  text-align: left;
+.sell-page {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  background-color: #f8f9fa;
+  min-height: 100vh;
 }
 
 .form-wrapper {
-  width: 100%;
-  max-width: 1200px;
-  margin: 100px auto 20px auto;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-  padding: 24px;
-  border: 1px solid #ccc;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: stretch;
-  overflow-y: hidden;
-  transition: all 0.3s ease;
-  max-height: auto;
-}
-
-.form-wrapper:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .photo-upload {
