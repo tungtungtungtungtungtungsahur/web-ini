@@ -37,9 +37,24 @@
         <span>❓ Bantuan</span>
         <span class="arrow">›</span>
       </div>
-      <div class="menu-item" @click="signOut">
+      <div class="menu-item" @click="showLogoutModal">
         <span>🚪 Keluar</span>
         <span class="arrow">›</span>
+      </div>
+    </div>
+
+    <!-- Modal Konfirmasi Keluar -->
+    <div v-if="showLogoutConfirm" class="modal-overlay">
+      <div class="modal-box">
+        <svg class="warning-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="#f44336" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0z" />
+        </svg>
+        <h3>Keluar dari Akun?</h3>
+        <p>Apakah Anda yakin ingin keluar dari akun ini?</p>
+        <div class="modal-buttons">
+          <button class="btn-cancel" @click="showLogoutConfirm = false">Tidak</button>
+          <button class="btn-confirm" @click="confirmSignOut">Yakin</button>
+        </div>
       </div>
     </div>
   </div>
@@ -59,12 +74,17 @@ export default {
     const name = ref('')
     const handle = ref('')
     const photoURL = ref('https://placehold.co/100x100/pink/white?text=Profile')
+    const showLogoutConfirm = ref(false)
 
     const goToEditProfile = () => {
       router.push('/editprofile')
     }
 
-    const handleSignOut = async () => {
+    const showLogoutModal = () => {
+      showLogoutConfirm.value = true
+    }
+
+    const confirmSignOut = async () => {
       try {
         await signOut(auth)
         router.push('/signin')
@@ -78,7 +98,6 @@ export default {
         if (user) {
           const docRef = doc(db, 'users', user.uid)
           const docSnap = await getDoc(docRef)
-
           if (docSnap.exists()) {
             const data = docSnap.data()
             name.value = data.name || ''
@@ -91,11 +110,13 @@ export default {
 
     return {
       router,
-      goToEditProfile,
-      signOut: handleSignOut,
       name,
       handle,
       photoURL,
+      showLogoutConfirm,
+      goToEditProfile,
+      showLogoutModal,
+      confirmSignOut,
     }
   },
 }
@@ -189,10 +210,78 @@ export default {
 
 .arrow {
   font-size: 18px;
-  color: putih;
+  color: white;
 }
 
 .menu-item:hover {
-  background: #cce0ff; /* warna hover lebih gelap */
+  background: #cce0ff;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal-box {
+  background: #fff0f5;
+  padding: 24px;
+  border-radius: 16px;
+  width: 300px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.modal-box h3 {
+  margin: 10px 0;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.modal-box p {
+  margin-bottom: 20px;
+  color: #555;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.btn-cancel {
+  flex: 1;
+  background: #ffffff;
+  border: 2px solid #ccc;
+  color: black;
+  padding: 10px;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.btn-confirm {
+  flex: 1;
+  background: #f44336;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.warning-icon {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 10px;
 }
 </style>
