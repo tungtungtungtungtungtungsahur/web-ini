@@ -16,9 +16,9 @@
         <img :src="profileImageUrl" alt="Profile Picture">
       </div>
       <div class="profile-info">
-        <h2>putri</h2>
-        <p>@putriAja <span class="verified-badge">Terverifikasi</span></p>
-        <p>📍 Bandung</p>
+        <h2>{{ name }}</h2>
+        <p>@{{ username }} <span class="verified-badge">Terverifikasi</span></p>
+        <p>📍 {{ location }}</p>
       </div>
     </section>
 
@@ -53,41 +53,47 @@
     </section>
 
     <section class="tentang-section" v-if="activeTab === 'Tentang' && !selectedProduct">
-      <div class="info-container">
+      <div class="info-container" v-if="hasStoreData">
         <div class="info-item">
           <span class="icon">📄</span>
           <div class="text-content">
             <h3>Deskripsi</h3>
-            <p>Toko merupakan toko penjualan elektronik dan perabotan rumah terpecaya, bagi yang percaya aja😊</p>
+            <p>{{ storeDescription }}</p>
           </div>
         </div>
         <div class="info-item">
           <span class="icon">📍</span>
           <div class="text-content">
             <h3>Lokasi</h3>
-            <p>Bandung Kota</p>
+            <p>{{ storeLocation }}</p>
           </div>
         </div>
         <div class="info-item">
           <span class="icon">👥</span>
           <div class="text-content">
             <h3>Kategori</h3>
-            <p>Furniture, Elektronik</p>
+            <p>{{ storeCategories }}</p>
           </div>
         </div>
         <div class="info-item">
           <span class="icon">📞</span>
           <div class="text-content">
             <h3>Kontak</h3>
-            <p>0812121212</p>
+            <p>{{ storeContact }}</p>
           </div>
         </div>
         <div class="info-item">
           <span class="icon">⏰</span>
           <div class="text-content">
             <h3>Jam Operasional</h3>
-            <p>Senin, 08:00-23:59</p>
+            <p>{{ storeOperatingHours }}</p>
           </div>
+        </div>
+      </div>
+      <div class="info-container" v-else>
+        <div class="no-data-content">
+          <p>Tidak terdapat informasi terkait toko ini</p>
+          <button class="fill-data-btn" @click="$router.push('/BioDataToko')">Isi Biodata Toko</button>
         </div>
       </div>
     </section>
@@ -127,12 +133,25 @@
 </template>
 
 <script>
+import { auth, db } from '../firebase'
+import { doc, getDoc } from 'firebase/firestore'
+import { onAuthStateChanged } from 'firebase/auth'
+
 export default {
   name: 'AkunTokoSisiPenjual',
   data() {
     return {
       profileImageUrl: '',
+      name: '',
+      username: '',
+      location: '',
       activeTab: 'Tentang',
+      storeDescription: '',
+      storeLocation: '',
+      storeCategories: '',
+      storeContact: '',
+      storeOperatingHours: '',
+      hasStoreData: false,
       products: [
         { id: 1, name: 'lampu', price: 1000, imageUrl: 'https://via.placeholder.com/300', description: 'hitam legam dan kalcwer', category: 'Elektronik', condition: 'Baru', style: 'Modern' },
         { id: 2, name: 'pintu lift', price: 125000000, imageUrl: 'https://via.placeholder.com/300', description: 'Deskripsi pintu lift', category: 'Furniture', condition: 'Baru', style: 'Minimalis' },
@@ -145,42 +164,61 @@ export default {
     };
   },
   created() {
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userRef = doc(db, 'users', user.uid);
+        const userSnap = await getDoc(userRef);
+        
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          this.name = userData.name || '';
+          this.username = userData.username || '';
+          this.profileImageUrl = userData.photoURL || 'https://via.placeholder.com/100';
+          this.location = userData.location || '';
+        }
 
+        const storeRef = doc(db, 'stores', user.uid);
+        const storeSnap = await getDoc(storeRef);
+        
+        if (storeSnap.exists()) {
+          const storeData = storeSnap.data();
+          this.storeDescription = storeData.description || '';
+          this.storeLocation = storeData.location || '';
+          this.storeCategories = storeData.categories || '';
+          this.storeContact = storeData.contact || '';
+          this.storeOperatingHours = storeData.operatingHours || '';
+          this.hasStoreData = true;
+        } else {
+          this.hasStoreData = false;
+        }
+      }
+    });
   },
   methods: {
     viewProductDetail(product) {
       this.selectedProduct = product;
     },
     goBack() {
-      // Use router to go back to the previous page
-      // Example using Vue Router:
-      this.$router.go(-1); // or this.$router.back();
-      // If not using a router, you might need different logic
+      this.$router.push('/akun');
     },
     editProduct() {
       this.$router.push({ name: 'editDetailProduk', params: { productId: this.selectedProduct.id } });
     },
     deleteProduct() {
-      this.productToDelete = this.selectedProduct; // Store product to delete
-      this.showDeleteModal = true; // Show the custom modal
+      this.productToDelete = this.selectedProduct;
+      this.showDeleteModal = true;
     },
     confirmDelete() {
-      // Simulate loading if needed (e.g., this.isLoading = true)
       console.log('Deleting product:', this.productToDelete.id);
-
-      // Simulate deletion by filtering the products array
       this.products = this.products.filter(product => product.id !== this.productToDelete.id);
-
-      // Simulate successful deletion and return to list
-      // this.isLoading = false;
-      this.selectedProduct = null; // Return to the main list view
-      this.showDeleteModal = false; // Hide the modal
-      this.productToDelete = null; // Clear product to delete
+      this.selectedProduct = null;
+      this.showDeleteModal = false;
+      this.productToDelete = null;
       alert('Product deleted!');
     },
     cancelDelete() {
-      this.showDeleteModal = false; // Hide the modal
-      this.productToDelete = null; // Clear product to delete
+      this.showDeleteModal = false;
+      this.productToDelete = null;
     }
   }
 }
@@ -194,6 +232,7 @@ export default {
   min-height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
+  padding-left: 70px;
 }
 
 .header {
@@ -210,6 +249,7 @@ export default {
   z-index: 10;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   box-sizing: border-box;
+  padding-left: 70px;
 }
 
 .header-content {
@@ -378,6 +418,7 @@ body {
 
 .tentang-section {
   padding: 0 20px;
+  margin-top: 20px;
 }
 
 .info-container {
@@ -432,6 +473,7 @@ body {
 
 .barang-section {
   padding: 0 20px;
+  margin-top: 20px;
 }
 
 .barang-list {
@@ -597,6 +639,33 @@ body {
 .modal-buttons button:last-child {
   background-color: #6c757d;
   color: white;
+}
+
+.no-data-content {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+  margin-top: 30px;
+}
+
+.no-data-content p {
+  margin-bottom: 20px;
+  font-size: 1.1em;
+}
+
+.fill-data-btn {
+  background-color: #1a2b35;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.fill-data-btn:hover {
+  background-color: #2c3e50;
 }
 
 @media (min-width: 768px) {
