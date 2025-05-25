@@ -136,6 +136,7 @@
 import { auth, db } from '../firebase'
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
+import { useRoute } from 'vue-router'
 
 export default {
   name: 'AkunTokoSisiPenjual',
@@ -159,6 +160,10 @@ export default {
     };
   },
   created() {
+    if (this.$route.query.tab === 'Barang') {
+      this.activeTab = 'Barang';
+    }
+
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         const userRef = doc(db, 'users', user.uid);
@@ -169,7 +174,6 @@ export default {
           this.name = userData.name || '';
           this.username = userData.username || '';
           this.profileImageUrl = userData.photoURL || 'https://via.placeholder.com/100';
-          this.location = userData.location || '';
         }
 
         const storeRef = doc(db, 'stores', user.uid);
@@ -178,13 +182,14 @@ export default {
         if (storeSnap.exists()) {
           const storeData = storeSnap.data();
           this.storeDescription = storeData.description || '';
-          this.storeLocation = storeData.location || '';
+          this.location = storeData.location || '-';
           this.storeCategories = storeData.categories || '';
           this.storeContact = storeData.contact || '';
           this.storeOperatingHours = storeData.operatingHours || '';
           this.hasStoreData = true;
         } else {
           this.hasStoreData = false;
+          this.location = '-';
         }
 
         this.fetchUserProducts(user.uid);

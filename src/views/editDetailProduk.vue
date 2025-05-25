@@ -155,6 +155,8 @@
       const route = useRoute();
       const productId = route.params.productId; // Get product ID from route
 
+      console.log('EditDetailProduk mounted with productId:', productId); // Log the received product ID
+
       // Reactive data properties, initialized potentially with default or empty values
       const photos = ref([]);
       const productName = ref('');
@@ -182,11 +184,12 @@
 
       onMounted(async () => {
         if (productId) {
-          const productRef = doc(db, 'products', productId);
+          const productRef = doc(db, 'products', productId as string);
           const productSnap = await getDoc(productRef);
 
           if (productSnap.exists()) {
             const productData = productSnap.data();
+            console.log('Product data found:', productData); // Log fetched product data
             // Populate form fields with fetched data
             productName.value = productData.name || '';
             description.value = productData.description || '';
