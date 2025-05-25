@@ -30,7 +30,7 @@
       <span v-else>Daftar</span>
     </button>
 
-    <p class="login-link">Sudah punya akun? <a href="/login">Login</a></p>
+    <p class="login-link">Sudah punya akun? <a href="/signin">Login</a></p>
 
     <div v-if="showSuccessModal" class="modal">
       <div class="modal-box">
@@ -104,7 +104,7 @@ export default {
 }
 
 .logo {
-  width: 100px;
+  width: 120px;
   height: auto;
   margin-bottom: 24px;
 }
@@ -191,7 +191,6 @@ export default {
   }
 }
 
-/* Modal */
 .modal {
   position: fixed;
   top: 0;
