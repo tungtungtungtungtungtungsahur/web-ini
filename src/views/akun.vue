@@ -28,7 +28,7 @@
         <div class="menu-item" @click="router.push('/katalogsaya')">
           🏬 Katalog Saya
         </div>
-        <div class="menu-item" @click="router.push('/biodatatoko')">
+        <div class="menu-item" @click="router.push('/BioDataToko')">
           📄 Biodata Toko
         </div>
         <div class="menu-item" @click="router.push('/bantuan')">
