@@ -32,24 +32,14 @@
         <div v-else-if="error" class="error">
           {{ error }}
         </div>
-        <div v-else-if="!cartItems.length" class="empty">
+        <div v-else-if="!cart.cartItems.length" class="empty">
           Belum ada item di keranjang.
         </div>
         <template v-else>
-          <div v-for="item in cartItems" :key="item.id" class="cart-group">
-            <div class="seller-info">
-              <img
-                :src="item.seller.avatarUrl || '/default-avatar.png'"
-                :alt="item.seller.name"
-                class="seller-avatar"
-                @error="handleImageError"
-              >
-              <span class="seller-name">{{ item.seller.name }}</span>
-            </div>
-
+          <div v-for="item in cart.cartItems" :key="item.id" class="cart-group">
             <div class="product-card">
               <img
-                :src="item.images[0] || '/placeholder.png'"
+                :src="item.image"
                 :alt="item.name"
                 class="product-img"
                 @error="handleImageError"
@@ -57,13 +47,18 @@
               <div class="product-details">
                 <p class="product-title">{{ item.name }}</p>
                 <p class="product-price">Rp {{ formatPrice(item.price) }}</p>
+                <div class="quantity-control">
+                  <button @click="updateQuantity(item.id, item.quantity - 1)" :disabled="item.quantity <= 1">-</button>
+                  <span>{{ item.quantity }}</span>
+                  <button @click="updateQuantity(item.id, item.quantity + 1)">+</button>
+                </div>
               </div>
               <button v-if="isEdit" class="delete-btn" @click="removeItem(item.id)">×</button>
             </div>
 
             <div class="actions">
               <button class="chat-btn" @click="startChat(item)">Chat penjual</button>
-              <button class="selesai-btn" @click="markAsDone(item)">Selesai</button>
+              <button class="checkout-btn" @click="checkout(item)">Checkout</button>
             </div>
           </div>
         </template>
@@ -89,17 +84,17 @@ defineOptions({
 })
 
 const router = useRouter()
-const cartStore = useCartStore()
+const cart = useCartStore()
 
 const activeTab = ref('proses')
 const isEdit = ref(false)
 const loading = ref(true)
 const error = ref('')
 
-const cartItems = computed(() => cartStore.items)
+const cartItems = computed(() => cart.cartItems)
 
 onMounted(() => {
-  const unsubscribe = cartStore.subscribeToCart()
+  cart.fetchCartItems()
   loading.value = false
 
   onUnmounted(() => {
@@ -117,10 +112,15 @@ const toggleEdit = () => {
 
 const removeItem = async (itemId: string) => {
   try {
-    await cartStore.removeFromCart(itemId)
+    await cart.removeFromCart(itemId)
   } catch (err) {
     console.error('Error removing item:', err)
   }
+}
+
+const updateQuantity = async (itemId: string, quantity: number) => {
+  if (quantity < 1) return
+  await cart.updateQuantity(itemId, quantity)
 }
 
 const startChat = (item: CartItem) => {
@@ -133,28 +133,28 @@ const startChat = (item: CartItem) => {
       productInfo: {
         name: item.name,
         price: item.price,
-        images: item.images
+        image: item.image
       }
     }
   })
 }
 
-const markAsDone = async (item: CartItem) => {
-  try {
-    const user = auth.currentUser
-    if (!user) return
+const checkout = (item: CartItem) => {
+  router.push({
+    name: 'checkout',
+    params: {
+      itemId: item.id
+    }
+  })
+}
 
-    // Add to cart_done collection
-    await addDoc(collection(db, 'users', user.uid, 'cart_done'), {
-      ...item,
-      completedAt: serverTimestamp()
-    })
-
-    // Remove from cart
-    await cartStore.removeFromCart(item.id)
-  } catch (err) {
-    console.error('Error marking item as done:', err)
-  }
+const checkoutAll = () => {
+  router.push({
+    name: 'checkout',
+    params: {
+      type: 'all'
+    }
+  })
 }
 
 const handleImageError = (e: Event) => {
@@ -162,7 +162,7 @@ const handleImageError = (e: Event) => {
   target.src = '/placeholder.png'
 }
 
-const formatPrice = (price: string | number) => {
+const formatPrice = (price: number) => {
   return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 }
 </script>
@@ -236,24 +236,6 @@ const formatPrice = (price: string | number) => {
   margin-bottom: 16px;
 }
 
-.seller-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.seller-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.seller-name {
-  font-weight: 500;
-}
-
 .product-card {
   display: flex;
   gap: 12px;
@@ -283,6 +265,32 @@ const formatPrice = (price: string | number) => {
   font-weight: bold;
 }
 
+.quantity-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.quantity-control button {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.quantity-control button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.quantity-control span {
+  min-width: 24px;
+  text-align: center;
+}
+
 .delete-btn {
   position: absolute;
   top: 0;
@@ -301,7 +309,7 @@ const formatPrice = (price: string | number) => {
 }
 
 .chat-btn,
-.selesai-btn {
+.checkout-btn {
   flex: 1;
   padding: 12px;
   border: none;
@@ -315,7 +323,7 @@ const formatPrice = (price: string | number) => {
   color: #000;
 }
 
-.selesai-btn {
+.checkout-btn {
   background: #000;
   color: white;
 }
