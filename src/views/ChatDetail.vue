@@ -47,7 +47,7 @@
 
     <!-- Input Area -->
     <div class="input-area">
-      <button class="location-button" @click="showLocationPicker = true" :disabled="sending">
+      <button class="location-button" @click="toggleLocationPicker" :disabled="sending">
         <svg viewBox="0 0 24 24" width="24" height="24">
           <path fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
         </svg>
@@ -83,52 +83,69 @@
       <div class="location-modal-content">
         <div class="location-modal-header">
           <h3>Pilih Lokasi</h3>
-          <button class="close-button" @click="showLocationPicker = false">×</button>
+          <button class="close-button" @click="toggleLocationPicker">×</button>
         </div>
 
-        <div class="search-container">
-          <input
-            v-model="locationSearch"
-            @input="searchLocations"
-            placeholder="Cari lokasi..."
-            type="text"
-            class="location-search"
-          />
-          <button class="current-location-btn" @click="getCurrentLocation" :disabled="loadingMap">
-            <svg viewBox="0 0 24 24" width="24" height="24">
-              <path fill="currentColor" d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
-            </svg>
-          </button>
-        </div>
+        <!-- Search Section -->
+        <div class="search-section">
+          <div class="search-container">
+            <input
+              v-model="locationSearch"
+              @input="searchLocations"
+              placeholder="Cari lokasi..."
+              type="text"
+              class="location-search"
+            />
+            <button class="search-button" @click="searchLocations">
+              <svg viewBox="0 0 24 24" width="24" height="24">
+                <path fill="currentColor" d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+              </svg>
+            </button>
+            <button class="gps-button" @click="centerOnUserLocation" title="Lokasi Saya">
+              <svg viewBox="0 0 24 24" width="24" height="24">
+                <path fill="currentColor" d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+              </svg>
+            </button>
+          </div>
 
-        <div v-if="loadingMap" class="loading-map">
-          <div class="spinner"></div>
-        </div>
-
-        <div v-if="suggestions.length > 0" class="location-suggestions">
-          <div v-for="suggestion in suggestions"
-               :key="suggestion.place_id"
-               class="suggestion-item"
-               @click="selectSuggestion(suggestion)">
-            <div class="suggestion-icon">🏢</div>
-            <div class="suggestion-details">
-              <div class="suggestion-name">{{ suggestion.display_name }}</div>
-              <div class="suggestion-address">{{ suggestion.address?.road || suggestion.address?.suburb || '' }}</div>
+          <!-- Search Results -->
+          <div class="search-results" v-if="locationSearch && searchResults.length > 0">
+            <div v-for="place in searchResults" :key="place.osm_id"
+                 class="search-result-item" @click="selectLocation(place)">
+              <div class="result-icon">📍</div>
+              <div class="result-details">
+                <div class="result-name">{{ place.display_name }}</div>
+                <div class="result-address">{{ place.address }}</div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div id="map" class="map-container"></div>
+        <!-- Map Section -->
+        <div class="map-section">
+          <div class="map-container">
+            <div id="map" class="map"></div>
+          </div>
+        </div>
 
-        <div v-if="selectedLocation" class="selected-location">
-          <div class="selected-location-details">
-            <div class="selected-location-name">{{ selectedLocation.name }}</div>
-            <div class="selected-location-address">{{ selectedLocation.address }}</div>
+        <!-- Location Info -->
+        <div class="location-info-container" v-if="selectedLocation">
+          <div class="location-info">
+            <div class="location-header">
+              <div class="location-icon">📍</div>
+              <div class="location-details">
+                <div class="location-name">{{ selectedLocation.name || 'Lokasi yang dipilih' }}</div>
+                <div class="location-address">{{ selectedLocation.address }}</div>
+              </div>
+            </div>
           </div>
-          <div class="location-actions">
-            <button class="cancel-button" @click="selectedLocation = null">Ubah</button>
-            <button class="send-location-button" @click="sendSelectedLocation">Kirim Lokasi</button>
-          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <button class="send-location-button" @click="sendLocation" :disabled="!selectedLocation">
+            Kirim Lokasi
+          </button>
         </div>
       </div>
     </div>
@@ -136,7 +153,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { defineComponent, ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { auth, db } from '../firebase'
 import {
@@ -150,8 +167,6 @@ import {
   serverTimestamp
 } from 'firebase/firestore'
 import { FirestoreError } from 'firebase/firestore'
-import type { Map, Marker, LeafletMouseEvent } from 'leaflet'
-import 'leaflet/dist/leaflet.css?inline'
 
 interface Message {
   id: string
@@ -161,10 +176,6 @@ interface Message {
     toDate: () => Date
   }
   read: boolean
-  isLocation?: boolean
-  latitude?: number
-  longitude?: number
-  address?: string
 }
 
 interface User {
@@ -182,25 +193,52 @@ interface ProductInfo {
 }
 
 interface Location {
-  name: string
-  address: string
   lat: number
   lng: number
-  place_id?: string
-  display_name?: string
+  name: string
+  address: string
 }
 
-interface Suggestion {
-  place_id: string
+interface SearchResult {
+  osm_id: number
   display_name: string
+  address: string
   lat: string
   lon: string
-  address?: {
-    road?: string
-    suburb?: string
-    city?: string
-    state?: string
-    country?: string
+}
+
+interface Leaflet {
+  map: (id: string, options: { center: [number, number]; zoom: number; zoomControl: boolean }) => LeafletMap
+  tileLayer: (url: string, options: { attribution: string; maxZoom: number }) => unknown
+  control: {
+    layers: (baseMaps: Record<string, unknown>) => { addTo: (map: LeafletMap) => void }
+    zoom: (options: { position: string }) => { addTo: (map: LeafletMap) => void }
+  }
+  divIcon: (options: { className: string; html: string; iconSize: [number, number]; iconAnchor: [number, number] }) => unknown
+  marker: (latlng: [number, number], options: { icon: unknown; draggable?: boolean; autoPan?: boolean; zIndexOffset?: number }) => LeafletMarker
+}
+
+interface LeafletMap {
+  setView: (latlng: [number, number], zoom: number) => void
+  on: (event: string, handler: (e: LeafletEvent) => void) => void
+  remove: () => void
+  getCenter: () => { lat: number; lng: number }
+  invalidateSize: () => void
+  addLayer: (layer: unknown) => void
+  getZoom: () => number
+}
+
+interface LeafletMarker {
+  setLatLng: (latlng: [number, number]) => void
+  on: (event: string, handler: (e: LeafletEvent) => void) => void
+  addTo: (map: LeafletMap) => void
+  remove: () => void
+  isDragging: () => boolean
+}
+
+interface LeafletEvent {
+  target: {
+    getLatLng: () => { lat: number; lng: number }
   }
 }
 
@@ -227,14 +265,12 @@ export default defineComponent({
     const sending = ref(false)
     const showLocationPicker = ref(false)
     const locationSearch = ref('')
-    const currentLocation = ref<Location | null>(null)
-    const nearbyPlaces = ref<Location[]>([])
+    const searchResults = ref<SearchResult[]>([])
     const selectedLocation = ref<Location | null>(null)
-    const loadingMap = ref(false)
-    const locationError = ref('')
-    const suggestions = ref<Suggestion[]>([])
-    let map: Map | null = null
-    let marker: Marker | null = null
+    const map = ref<LeafletMap | null>(null)
+    const searchTimeout = ref<number | null>(null)
+    const mapInitialized = ref(false)
+    const marker = ref<LeafletMarker | null>(null)
 
     const formatPrice = (price: number) => {
       return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
@@ -284,162 +320,6 @@ export default defineComponent({
         sending.value = false
       }
     }
-
-    const initMap = async () => {
-      if (!map) {
-        const L = await import('leaflet')
-        map = L.map('map').setView([-6.2, 106.8], 13)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors'
-        }).addTo(map)
-
-        map.on('click', (e: LeafletMouseEvent) => {
-          const { lat, lng } = e.latlng
-          updateMarker(lat, lng)
-          reverseGeocode(lat, lng)
-        })
-      }
-    }
-
-    const updateMarker = async (lat: number, lng: number) => {
-      if (!map) return
-
-      const L = await import('leaflet')
-      if (marker) {
-        marker.setLatLng([lat, lng])
-      } else {
-        marker = L.marker([lat, lng]).addTo(map)
-      }
-    }
-
-    const getCurrentLocation = async () => {
-      loadingMap.value = true
-      try {
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 5000,
-            maximumAge: 0
-          })
-        })
-
-        const { latitude, longitude } = position.coords
-        if (map) {
-          map.setView([latitude, longitude], 15)
-          updateMarker(latitude, longitude)
-          reverseGeocode(latitude, longitude)
-        }
-      } catch (err) {
-        console.error('Error getting location:', err)
-        locationError.value = 'Gagal mendapatkan lokasi. Pastikan izin lokasi diaktifkan.'
-      } finally {
-        loadingMap.value = false
-      }
-    }
-
-    const reverseGeocode = async (lat: number, lng: number) => {
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
-        )
-        const data = await response.json()
-
-        selectedLocation.value = {
-          name: data.display_name.split(',')[0],
-          address: data.display_name,
-          lat,
-          lng
-        }
-      } catch (err) {
-        console.error('Error reverse geocoding:', err)
-      }
-    }
-
-    const searchLocations = async () => {
-      if (!locationSearch.value.trim()) {
-        suggestions.value = []
-        return
-      }
-
-      loadingMap.value = true
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationSearch.value)}&countrycodes=id&limit=5`
-        )
-        const data = await response.json()
-        suggestions.value = data
-      } catch (err) {
-        console.error('Error searching locations:', err)
-        locationError.value = 'Gagal mencari lokasi. Silakan coba lagi.'
-      } finally {
-        loadingMap.value = false
-      }
-    }
-
-    const selectSuggestion = (suggestion: Suggestion) => {
-      const lat = parseFloat(suggestion.lat)
-      const lon = parseFloat(suggestion.lon)
-
-      if (map) {
-        map.setView([lat, lon], 15)
-        updateMarker(lat, lon)
-        selectedLocation.value = {
-          name: suggestion.display_name.split(',')[0],
-          address: suggestion.display_name,
-          lat,
-          lng: lon
-        }
-        suggestions.value = []
-      }
-    }
-
-    const sendSelectedLocation = async () => {
-      if (!selectedLocation.value || !currentUser || sending.value) return
-
-      sending.value = true
-      try {
-        const locationMessage = `📍 ${selectedLocation.value.name}\n${selectedLocation.value.address}\nhttps://www.google.com/maps?q=${selectedLocation.value.lat},${selectedLocation.value.lng}`
-
-        const messageData = {
-          senderId: currentUser.uid,
-          message: locationMessage,
-          timestamp: serverTimestamp(),
-          read: false,
-          isLocation: true,
-          latitude: selectedLocation.value.lat,
-          longitude: selectedLocation.value.lng,
-          address: selectedLocation.value.address
-        }
-
-        await addDoc(collection(db, 'chats', chatId.value, 'messages'), messageData)
-        showLocationPicker.value = false
-        selectedLocation.value = null
-      } catch (err) {
-        console.error('Error sending location:', err)
-        error.value = 'Gagal mengirim lokasi. Silakan coba lagi.'
-      } finally {
-        sending.value = false
-      }
-    }
-
-    watch(showLocationPicker, (newValue) => {
-      if (newValue) {
-        nextTick(() => {
-          initMap()
-          getCurrentLocation()
-        })
-      } else {
-        if (map) {
-          map.remove()
-          map = null
-          marker = null
-        }
-        selectedLocation.value = null
-        locationSearch.value = ''
-        suggestions.value = []
-        locationError.value = ''
-      }
-    })
 
     const initializeChat = async () => {
       loading.value = true
@@ -496,6 +376,287 @@ export default defineComponent({
       }
     }
 
+    const toggleLocationPicker = () => {
+      showLocationPicker.value = !showLocationPicker.value
+      if (showLocationPicker.value && !mapInitialized.value) {
+        nextTick(() => {
+          console.log("Attempting to initialize map...");
+          initMap()
+        })
+      }
+    }
+
+    const initMap = () => {
+      if (!mapInitialized.value) {
+        console.log("initMap called, mapInitialized is", mapInitialized.value);
+
+        // Load Leaflet CSS
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+        document.head.appendChild(link)
+
+        // Load Leaflet JS
+        const script = document.createElement('script')
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+        script.onload = () => {
+          console.log("Leaflet loaded.");
+          const L = (window as unknown as { L: Leaflet }).L
+          const mapElement = document.getElementById('map')
+          if (mapElement) {
+            console.log("Map element found:", mapElement);
+
+            // Ensure map container has dimensions
+            mapElement.style.height = '300px'
+            mapElement.style.width = '100%'
+
+            // Initialize map
+            const leafletMap = L.map('map', {
+              center: [-6.2088, 106.8456],
+              zoom: 15,
+              zoomControl: false
+            })
+            map.value = leafletMap
+
+            // Add Google Maps layer with place names
+            L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+              attribution: '© Google',
+              maxZoom: 20
+            }).addTo(leafletMap)
+
+            // Add Google Satellite layer
+            const satelliteLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+              attribution: '© Google',
+              maxZoom: 20
+            })
+
+            // Add layer control
+            const baseMaps = {
+              "Peta": L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                attribution: '© Google',
+                maxZoom: 20
+              }),
+              "Satelit": satelliteLayer
+            }
+            L.control.layers(baseMaps).addTo(leafletMap)
+
+            // Add zoom control to top right
+            L.control.zoom({
+              position: 'topright'
+            }).addTo(leafletMap)
+
+            // Create marker icon for selected location
+            const markerIcon = L.divIcon({
+              className: 'custom-marker',
+              html: `
+                <div class="marker-pin"></div>
+                <div class="marker-pulse"></div>
+              `,
+              iconSize: [30, 30],
+              iconAnchor: [15, 15]
+            })
+
+            // Create current location marker icon
+            const currentLocationIcon = L.divIcon({
+              className: 'current-location-marker',
+              html: `
+                <div class="current-location-pin">
+                  <svg viewBox="0 0 24 24" width="24" height="24">
+                    <path fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                  </svg>
+                </div>
+                <div class="current-location-pulse"></div>
+              `,
+              iconSize: [40, 40],
+              iconAnchor: [20, 20]
+            })
+
+            // Add marker for selected location
+            const selectedMarker = L.marker([-6.2088, 106.8456], {
+              icon: markerIcon,
+              draggable: true,
+              autoPan: true
+            }).addTo(leafletMap)
+            marker.value = selectedMarker
+
+            // Add current location marker
+            const currentLocationMarker = L.marker([-6.2088, 106.8456], {
+              icon: currentLocationIcon,
+              zIndexOffset: 1000
+            }).addTo(leafletMap)
+
+            // Add dragend handler for selected location marker
+            selectedMarker.on('dragend', async (e: LeafletEvent) => {
+              const position = e.target.getLatLng()
+              await updateLocationFromCoordinates(position.lat, position.lng)
+            })
+
+            mapInitialized.value = true
+            leafletMap.invalidateSize()
+
+            // Get initial location
+            centerOnUserLocation()
+
+            // Start watching user location
+            if (navigator.geolocation) {
+              navigator.geolocation.watchPosition(
+                (position) => {
+                  const { latitude, longitude } = position.coords
+                  currentLocationMarker.setLatLng([latitude, longitude])
+                  if (!selectedMarker.isDragging()) {
+                    leafletMap.setView([latitude, longitude], leafletMap.getZoom())
+                  }
+                },
+                (error) => {
+                  console.error('Error watching location:', error)
+                },
+                {
+                  enableHighAccuracy: true,
+                  timeout: 5000,
+                  maximumAge: 0
+                }
+              )
+            }
+          } else {
+            console.error("Map element #map not found!");
+          }
+        }
+        document.head.appendChild(script)
+      }
+    }
+
+    const updateLocationFromCoordinates = async (lat: number, lng: number) => {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+        )
+        const data = await response.json()
+
+        // Extract location details from the response
+        const address = data.address || {}
+        const locationName = [
+          address.road,
+          address.suburb,
+          address.neighbourhood,
+          address.quarter
+        ].filter(Boolean).join(', ') || data.display_name.split(',')[0]
+
+        const fullAddress = [
+          address.road,
+          address.suburb,
+          address.neighbourhood,
+          address.quarter,
+          address.city_district,
+          address.city,
+          address.state,
+          address.country
+        ].filter(Boolean).join(', ') || data.display_name
+
+        selectedLocation.value = {
+          lat,
+          lng,
+          name: locationName || 'Lokasi yang dipilih',
+          address: fullAddress
+        }
+      } catch (err) {
+        console.error('Error getting location details:', err)
+        error.value = 'Gagal mendapatkan detail lokasi. Silakan coba lagi.'
+      }
+    }
+
+    const centerOnUserLocation = async () => {
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+          })
+        })
+
+        const { latitude, longitude } = position.coords
+        if (map.value && marker.value) {
+          map.value.setView([latitude, longitude], 15)
+          marker.value.setLatLng([latitude, longitude])
+          await updateLocationFromCoordinates(latitude, longitude)
+        }
+      } catch (err) {
+        console.error('Error getting current location:', err)
+        error.value = 'Gagal mendapatkan lokasi saat ini. Silakan coba lagi.'
+      }
+    }
+
+    const searchLocations = () => {
+      if (searchTimeout.value) {
+        clearTimeout(searchTimeout.value)
+      }
+
+      if (!locationSearch.value.trim()) {
+        searchResults.value = []
+        return
+      }
+
+      searchTimeout.value = window.setTimeout(async () => {
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+              locationSearch.value
+            )}&countrycodes=id&limit=5`
+          )
+          const data = await response.json()
+          searchResults.value = data
+        } catch (err) {
+          console.error('Error searching locations:', err)
+          error.value = 'Gagal mencari lokasi. Silakan coba lagi.'
+        }
+      }, 500)
+    }
+
+    const selectLocation = async (place: SearchResult) => {
+      const lat = parseFloat(place.lat)
+      const lon = parseFloat(place.lon)
+
+      selectedLocation.value = {
+        lat,
+        lng: lon,
+        name: place.display_name.split(',')[0],
+        address: place.display_name
+      }
+
+      if (map.value) {
+        map.value.setView([lat, lon], 15)
+      }
+
+      locationSearch.value = ''
+      searchResults.value = []
+    }
+
+    const sendLocation = async () => {
+      if (!currentUser || sending.value || !selectedLocation.value) return
+
+      sending.value = true
+      try {
+        const locationMessage = `Lokasi: ${selectedLocation.value.name}\n${selectedLocation.value.address}\nhttps://www.openstreetmap.org/?mlat=${selectedLocation.value.lat}&mlon=${selectedLocation.value.lng}#map=15/${selectedLocation.value.lat}/${selectedLocation.value.lng}`
+
+        const messageData = {
+          senderId: currentUser.uid,
+          message: locationMessage,
+          timestamp: serverTimestamp(),
+          read: false
+        }
+
+        await addDoc(collection(db, 'chats', chatId.value, 'messages'), messageData)
+        showLocationPicker.value = false
+        locationSearch.value = ''
+        searchResults.value = []
+      } catch (err) {
+        console.error('Error sending location:', err)
+        error.value = 'Gagal mengirim lokasi. Silakan coba lagi.'
+      } finally {
+        sending.value = false
+      }
+    }
+
     onMounted(() => {
       initializeChat()
     })
@@ -503,6 +664,9 @@ export default defineComponent({
     onUnmounted(() => {
       if (unsubscribe) {
         unsubscribe()
+      }
+      if (map.value) {
+        map.value.remove()
       }
     })
 
@@ -522,16 +686,13 @@ export default defineComponent({
       sendMessage,
       showLocationPicker,
       locationSearch,
-      currentLocation,
-      nearbyPlaces,
+      searchResults,
       selectedLocation,
-      loadingMap,
-      locationError,
-      suggestions,
+      toggleLocationPicker,
       searchLocations,
-      getCurrentLocation,
-      selectSuggestion,
-      sendSelectedLocation
+      centerOnUserLocation,
+      selectLocation,
+      sendLocation
     }
   }
 })
@@ -795,53 +956,6 @@ export default defineComponent({
   color: rgba(255, 255, 255, 0.8);
 }
 
-.location-button {
-  background: none;
-  border: none;
-  color: #0084ff;
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  padding: 0;
-  flex-shrink: 0;
-}
-
-.location-button:hover:not(:disabled) {
-  transform: scale(1.05);
-}
-
-.location-button:active:not(:disabled) {
-  transform: scale(0.95);
-}
-
-.location-button:disabled {
-  color: #ccc;
-  cursor: not-allowed;
-}
-
-.location-button svg {
-  width: 24px;
-  height: 24px;
-}
-
-@media (max-width: 480px) {
-  .location-button {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-  }
-
-  .location-button svg {
-    width: 20px;
-    height: 20px;
-  }
-}
-
 .location-modal {
   position: fixed;
   top: 0;
@@ -861,17 +975,15 @@ export default defineComponent({
   width: 90%;
   max-width: 500px;
   max-height: 80vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  padding: 20px;
 }
 
 .location-modal-header {
-  padding: 16px;
-  border-bottom: 1px solid #eee;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 16px;
 }
 
 .location-modal-header h3 {
@@ -889,16 +1001,21 @@ export default defineComponent({
   color: #666;
 }
 
+.search-section {
+  margin-bottom: 16px;
+}
+
 .search-container {
-  padding: 16px;
-  border-bottom: 1px solid #eee;
+  position: relative;
+  margin-bottom: 12px;
   display: flex;
   gap: 8px;
+  align-items: center;
 }
 
 .location-search {
-  width: 100%;
-  padding: 12px;
+  flex: 1;
+  padding: 12px 40px 12px 12px;
   border: 1px solid #ddd;
   border-radius: 8px;
   font-size: 16px;
@@ -909,132 +1026,242 @@ export default defineComponent({
   border-color: #0084ff;
 }
 
-.current-location-btn {
+.search-button {
+  position: absolute;
+  right: 48px;
+  top: 50%;
+  transform: translateY(-50%);
   background: none;
   border: none;
-  color: #0084ff;
-  cursor: pointer;
   padding: 8px;
+  cursor: pointer;
+  color: #666;
+}
+
+.gps-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid #ddd;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s;
+  padding: 0;
 }
 
-.current-location-btn:disabled {
-  color: #ccc;
-  cursor: not-allowed;
+.gps-button:hover {
+  background: #f8f9fa;
+  transform: scale(1.05);
+  border-color: #0084ff;
 }
 
-.loading-map {
-  height: 300px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.gps-button:active {
+  transform: scale(0.95);
 }
 
-.location-suggestions {
+.gps-button svg {
+  width: 24px;
+  height: 24px;
+  color: #0084ff;
+}
+
+.search-results {
   max-height: 200px;
   overflow-y: auto;
-  border-bottom: 1px solid #eee;
+  border: 1px solid #eee;
+  border-radius: 8px;
 }
 
-.suggestion-item {
+.search-result-item {
   display: flex;
-  padding: 12px 16px;
+  align-items: flex-start;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
-.suggestion-item:hover {
+.search-result-item:hover {
   background-color: #f5f5f5;
 }
 
-.suggestion-icon {
-  font-size: 24px;
+.result-icon {
   margin-right: 12px;
+  font-size: 20px;
 }
 
-.suggestion-details {
+.result-details {
   flex: 1;
 }
 
-.suggestion-name {
+.result-name {
   font-weight: 500;
   margin-bottom: 4px;
 }
 
-.suggestion-address {
+.result-address {
   font-size: 14px;
   color: #666;
 }
 
-.selected-location {
-  padding: 16px;
-  border-top: 1px solid #eee;
-}
-
-.selected-location-details {
-  margin-bottom: 16px;
-}
-
-.selected-location-name {
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.selected-location-address {
-  color: #666;
-  font-size: 14px;
-}
-
-.location-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.cancel-button {
-  flex: 1;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: white;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.send-location-button {
-  flex: 1;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  background: #0084ff;
-  color: white;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.send-location-button:hover {
-  background: #0073e6;
+.map-section {
+  margin: 16px 0;
 }
 
 .map-container {
-  height: 300px;
+  position: relative;
   width: 100%;
-  margin: 16px 0;
+  height: 300px;
   border-radius: 8px;
   overflow: hidden;
+  border: 1px solid #ddd;
+  background: #f8f9fa;
 }
 
-@media (max-width: 480px) {
-  .location-modal-content {
-    width: 100%;
-    height: 100%;
-    max-height: none;
-    border-radius: 0;
-  }
+.map {
+  width: 100%;
+  height: 100%;
+}
 
-  .map-container {
-    height: 250px;
+.location-info-container {
+  margin: 16px 0;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.location-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.location-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+}
+
+.location-icon {
+  font-size: 24px;
+  line-height: 1;
+  color: #ff3b30;
+}
+
+.location-details {
+  flex: 1;
+}
+
+.location-name {
+  font-weight: 600;
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.location-address {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.action-buttons {
+  margin-top: 16px;
+}
+
+.send-location-button {
+  background: #0084ff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.send-location-button:hover:not(:disabled) {
+  background: #0073e6;
+  transform: translateY(-1px);
+}
+
+.send-location-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.send-location-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.custom-marker,
+.current-location-marker {
+  position: relative;
+}
+
+.marker-pin,
+.current-location-pin {
+  border-radius: 50%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid white;
+  box-shadow: 0 0 0 2px rgba(0, 132, 255, 0.3);
+}
+
+.marker-pin {
+  width: 20px;
+  height: 20px;
+  background: #0084ff;
+}
+
+.current-location-pin {
+  width: 40px;
+  height: 40px;
+  background: #0084ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.marker-pulse,
+.current-location-pulse {
+  position: absolute;
+  background: rgba(0, 132, 255, 0.2);
+  border-radius: 50%;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  animation: pulse 2s ease-out infinite;
+}
+
+.marker-pulse {
+  width: 40px;
+  height: 40px;
+}
+
+.current-location-pulse {
+  width: 60px;
+  height: 60px;
+}
+
+@keyframes pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 0;
   }
 }
 </style>
