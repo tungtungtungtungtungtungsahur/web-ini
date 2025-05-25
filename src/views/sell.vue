@@ -1,21 +1,29 @@
 <template>
-  <div class="sell-container">
-    <div class="form-wrapper">
-      <!-- Header -->
-      <div class="header">
-        <span class="close-btn" @click="closeForm">×</span>
-        <h2>Jual produk</h2>
-      </div>
+  <div class="jual-product-container">
+    <!-- Header (outside form-wrapper) -->
+    <div class="header">
+      <span class="back-arrow" @click="closeForm">&leftarrow;</span>
+      <h2>Jual Produk</h2>
+    </div>
 
+    <div class="form-wrapper">
       <!-- Upload Foto -->
       <div class="photo-upload">
         <div class="photo-list">
           <!-- Tombol tambah foto -->
-          <div class="photo-preview add-photo" v-if="photos.length < 4" @click="triggerFileInput">
-            <span>Tambah foto</span>
+          <div
+            class="photo-preview add-photo"
+            v-if="photos.length < 4"
+            @click="triggerFileInput"
+          >
+            <span>+</span>
           </div>
           <!-- Foto yang sudah diupload -->
-          <div class="photo-preview uploaded-photo" v-for="(url, idx) in photos" :key="url">
+          <div
+            class="photo-preview uploaded-photo"
+            v-for="(url, idx) in photos"
+            :key="url"
+          >
             <img :src="url" alt="Preview" />
             <button class="remove-photo" @click="removePhoto(idx)">×</button>
           </div>
@@ -27,24 +35,20 @@
           accept="image/*"
           @change="onPhotoChange"
           multiple
-          style="display: none"
+          style="display:none"
         />
       </div>
 
       <!-- Nama Produk -->
       <div class="form-group">
         <label>Nama Produk</label>
-        <input v-model="productName" type="text" placeholder="Nama produk" />
+        <input v-model="productName" type="text" placeholder="Masukkan nama produk" />
       </div>
 
       <!-- Deskripsi -->
       <div class="form-group">
         <label>Deskripsi</label>
-        <textarea
-          v-model="description"
-          @input="onDescriptionInput"
-          placeholder="Deskripsi produk"
-        ></textarea>
+        <textarea v-model="description" @input="onDescriptionInput" placeholder="Masukkan deskripsi terkait produk"></textarea>
         <div class="desc-info">
           <span>Hashtag: {{ hashtagCount }}</span>
           <span>{{ descriptionWordCount }}/500 kata</span>
@@ -66,9 +70,7 @@
       </div>
       <div class="form-group selector" @click="openPriceModal">
         <label>Harga</label>
-        <span>{{
-          price !== null && price !== 'Masukkan harga' ? 'Rp ' + price : 'Masukkan harga'
-        }}</span>
+        <span>{{ price !== null && price !== 'Masukkan harga' ? 'Rp ' + price : 'Masukkan harga' }}</span>
       </div>
 
       <!-- Submit Button -->
@@ -113,9 +115,7 @@
         <div class="modal-select">
           <h3>Pilih Kondisi</h3>
           <ul>
-            <li v-for="cond in conditions" :key="cond" @click="selectCondition(cond)">
-              {{ cond }}
-            </li>
+            <li v-for="cond in conditions" :key="cond" @click="selectCondition(cond)">{{ cond }}</li>
           </ul>
           <button class="modal-ok" @click="showConditionModal = false">Tutup</button>
         </div>
@@ -143,19 +143,12 @@
   </div>
 </template>
 
-<script lang="ts">
-import { ref } from 'vue'
-
+<script>
 export default {
-  name: 'SellProduct',
-  setup() {
-    const fileInput = ref<HTMLInputElement | null>(null)
-    return { fileInput }
-  },
   data() {
     return {
-      photos: [] as string[], // untuk menyimpan banyak foto
-      photo: null as string | null,
+      photos: [], // untuk menyimpan banyak foto
+      photo: null, 
       productName: '',
       description: '',
       category: 'Pilih kategori',
@@ -165,127 +158,113 @@ export default {
       showSuccessModal: false,
       isLoading: false,
       categories: [
-        'Fashion',
-        'Furniture',
-        'Elektronik',
-        'Aksesoris',
-        'Sepatu',
-        'Tas',
-        'Kosmetik',
-        'Perlengkapan Rumah',
-        'Kacamata',
-        'Buku',
-        'Lainnya',
+        'Fashion', 'Furniture', 'Elektronik', 'Aksesoris', 'Sepatu', 'Tas', 'Kosmetik',
+        'Perlengkapan Rumah', 'Kacamata', 'Buku', 'Lainnya'
       ],
-      conditions: ['Baru', 'Bekas', 'Baru dengan tag', 'Bekas seperti baru'],
-      styles: ['Batik', 'Casual', 'Formal', 'Sporty', 'Vintage', 'Modern', 'Minimalis', 'Lainnya'],
+      conditions: [
+        'Baru', 'Bekas', 'Baru dengan tag', 'Bekas seperti baru'
+      ],
+      styles: [
+        'Batik', 'Casual', 'Formal', 'Sporty', 'Vintage', 'Modern', 'Minimalis', 'Lainnya'
+      ],
       showCategoryModal: false,
       showStyleModal: false,
       showConditionModal: false,
       showPriceModal: false,
       tempPrice: null,
       priceError: '',
-    }
+    };
   },
   computed: {
     hashtagCount() {
-      return (this.description.match(/#/g) || []).length
+      return (this.description.match(/#/g) || []).length;
     },
     descriptionWordCount() {
-      if (!this.description) return 0
-      return this.description.trim().split(/\s+/).filter(Boolean).length
+      if (!this.description) return 0;
+      return this.description.trim().split(/\s+/).filter(Boolean).length;
     },
   },
   methods: {
     triggerFileInput() {
-      this.fileInput?.click()
+      this.$refs.fileInput.click();
     },
-    onPhotoChange(event: Event) {
-      const files = (event.target as HTMLInputElement).files
-      if (!files || !files.length) return
-      const maxPhotos = 4
+    onPhotoChange(event) {
+      const files = event.target.files;
+      if (!files.length) return;
+      const maxPhotos = 4;
       // Gabungkan foto lama dan baru, lalu ambil maksimal 4
-      const newFiles = Array.from(files).slice(0, maxPhotos - this.photos.length)
-      const newUrls = newFiles.map((file) => URL.createObjectURL(file as Blob))
-      this.photos = [...this.photos, ...newUrls].slice(0, maxPhotos)
-      this.photo = this.photos[0] || null
+      const newFiles = Array.from(files).slice(0, maxPhotos - this.photos.length);
+      const newUrls = newFiles.map(file => URL.createObjectURL(file));
+      this.photos = [...this.photos, ...newUrls].slice(0, maxPhotos);
+      this.photo = this.photos[0] || null;
     },
-    removePhoto(idx: number) {
-      this.photos.splice(idx, 1)
-      this.photo = this.photos[0] || null
+    removePhoto(idx) {
+      this.photos.splice(idx, 1);
+      this.photo = this.photos[0] || null;
     },
-    selectCategory(cat: string) {
-      this.category = cat
-      this.showCategoryModal = false
+    selectCategory(cat) {
+      this.category = cat;
+      this.showCategoryModal = false;
     },
-    selectStyle(sty: string) {
-      this.style = sty
-      this.showStyleModal = false
+    selectStyle(sty) {
+      this.style = sty;
+      this.showStyleModal = false;
     },
-    selectCondition(cond: string) {
-      this.condition = cond
-      this.showConditionModal = false
+    selectCondition(cond) {
+      this.condition = cond;
+      this.showConditionModal = false;
     },
     openPriceModal() {
-      this.tempPrice = this.price !== null && this.price !== 'Masukkan harga' ? this.price : null
-      this.priceError = ''
-      this.showPriceModal = true
+      this.tempPrice = this.price !== null && this.price !== 'Masukkan harga' ? this.price : null;
+      this.priceError = '';
+      this.showPriceModal = true;
     },
     setPrice() {
       if (this.tempPrice === null || this.tempPrice < 0) {
-        this.priceError = 'Harga harus lebih dari atau sama dengan 0'
-        return
+        this.priceError = 'Harga harus lebih dari atau sama dengan 0';
+        return;
       }
-      this.price = this.tempPrice
-      this.showPriceModal = false
-      this.priceError = ''
+      this.price = this.tempPrice;
+      this.showPriceModal = false;
+      this.priceError = '';
     },
     submitForm() {
       if (this.photos.length < 1) {
-        alert('Minimal upload 1 foto')
-        return
+        alert('Minimal upload 1 foto');
+        return;
       }
-      if (
-        !this.productName ||
-        !this.description ||
-        this.price === null ||
-        this.price === 'Masukkan harga' ||
-        this.price < 0 ||
-        this.category === 'Pilih kategori' ||
-        this.style === 'Pilih style' ||
-        this.condition === 'Pilih kondisi'
-      ) {
-        alert('Mohon lengkapi semua data dengan benar')
-        return
+      if (!this.productName || !this.description || this.price === null || this.price === 'Masukkan harga' || this.price < 0 || this.category === 'Pilih kategori' || this.style === 'Pilih style' || this.condition === 'Pilih kondisi') {
+        alert('Mohon lengkapi semua data dengan benar');
+        return;
       }
-      this.isLoading = true
+      this.isLoading = true;
       setTimeout(() => {
-        this.isLoading = false
-        this.showSuccessModal = true
-      }, 1500)
+        this.isLoading = false;
+        this.showSuccessModal = true;
+      }, 1500);
     },
     closeForm() {
-      alert('Tutup form')
+      alert('Tutup form');
     },
-    onDescriptionInput(e: Event) {
-      const words = (e.target as HTMLTextAreaElement).value.trim().split(/\s+/).filter(Boolean)
+    onDescriptionInput(e) {
+      const words = e.target.value.trim().split(/\s+/).filter(Boolean);
       if (words.length > 500) {
-        this.description = words.slice(0, 500).join(' ')
+        this.description = words.slice(0, 500).join(' ');
       }
     },
   },
-}
+};
 </script>
 
 <style scoped>
-.sell-container {
+.jual-product-container {
   width: 100vw;
   height: 100vh;
   min-width: 0;
   min-height: 0;
   max-width: none;
   max-height: none;
-  background: #fff;
+  background: #f6f2fa;
   padding: 0;
   border-radius: 0;
   box-sizing: border-box;
@@ -300,39 +279,7 @@ export default {
   z-index: 1;
   justify-content: center;
   align-items: center;
-  margin-top: 0px;
-}
-
-.form-wrapper {
-  width: 100%;
-  max-width: 1200px;
-  margin-left: 50px;
-  margin-top: -10px;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-  padding: 24px 32px 32px 32px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: stretch;
-  overflow-y: auto;
-  margin-top: -20px;
-  transition: all 0.3s ease;
-  max-height: 90vh;
-}
-
-.form-wrapper:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-}
-
-.header,
-.photo-upload,
-.form-group {
-  padding-left: 0;
-  padding-right: 0;
+  margin-top: 0;
 }
 
 .header {
@@ -341,48 +288,82 @@ export default {
   align-items: center;
   justify-content: flex-start;
   gap: 12px;
-  margin-bottom: 28px;
-  position: relative;
-  padding-left: 12px;
-  padding-right: 24px;
-  margin-top: -20px;
+  margin-bottom: 20px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 16px 24px;
+  background: #1b2a30;
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  z-index: 10;
+  justify-content: left;
+  align-items: left;
 }
 
-.close-btn {
+.back-arrow {
   position: static;
   font-size: 28px;
   cursor: pointer;
-  color: #222;
+  color: #fff;
   font-weight: 400;
-  margin-right: 8px;
-  margin-left: -20px;
+  margin-right: 12px;
+  margin-left: 0;
 }
 
 .header h2 {
-  font-size: 2rem;
-  font-weight: 600;
-  color: #222;
-  margin: 0 0 0 8px;
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: #ffff;
+  margin: 0;
   text-align: left;
+}
+
+.form-wrapper {
+  width: 100%;
+  max-width: 1200px;
+  margin: 100px auto 20px auto;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+  padding: 24px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  overflow-y: hidden;
+  transition: all 0.3s ease;
+  max-height: auto;
+}
+
+.form-wrapper:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.12);
 }
 
 .photo-upload {
   width: 100%;
   margin-bottom: 20px;
   box-sizing: border-box;
-  padding-left: 32px;
-  padding-right: 32px;
+  padding-left: 0;
+  padding-right: 0;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #ccc;
 }
 
 .photo-list {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   align-items: center;
+  justify-content: center;
 }
 
 .photo-preview {
-  width: 80px;
-  height: 80px;
+  width: 120px;
+  height: 120px;
   border: 2px dashed #d1d5db;
   display: flex;
   align-items: center;
@@ -402,8 +383,11 @@ export default {
 
 .add-photo {
   color: #888;
-  font-size: 1.1rem;
+  font-size: 36px;
   border-style: dashed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .uploaded-photo {
@@ -415,7 +399,7 @@ export default {
   position: absolute;
   top: 2px;
   right: 2px;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0,0,0,0.5);
   color: #fff;
   border: none;
   border-radius: 50%;
@@ -435,25 +419,27 @@ export default {
 }
 
 .photo-info {
-  font-size: 13px;
+  font-size: 12px;
   color: #888;
-  margin-top: 2px;
+  margin-top: 8px;
+  text-align: center;
 }
 
 .form-group {
   width: 100%;
   margin-bottom: 20px;
   box-sizing: border-box;
-  padding-left: 32px;
-  padding-right: 32px;
+  padding: 0;
+  border-bottom: 1px solid #ccc;
+  display: block;
 }
 
 .form-group label {
   font-weight: 600;
   display: block;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   color: #222;
-  font-size: 1.1rem;
+  font-size: 1rem;
   padding-left: 0;
 }
 
@@ -462,17 +448,17 @@ export default {
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  padding: 10px 12px;
-  border-radius: 6px;
-  border: 1px solid #d1d5db;
-  font-size: 1rem; /* Ukuran font input */
+  padding: 0;
+  border-radius: 0;
+  border: none;
+  font-size: 1.1rem;
   box-sizing: border-box;
-  background: #fff;
+  background: transparent;
   color: #222;
 }
 
 .form-group textarea {
-  min-height: 100px;
+  min-height: 80px;
   resize: vertical;
 }
 
@@ -481,53 +467,46 @@ export default {
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  border-bottom: 1px solid #ececec;
-  padding-top: 10px;
-  padding-bottom: 10px;
+  border-bottom: 1px solid #ccc;
+  padding: 12px 0;
   margin-bottom: 20px;
   background: transparent;
-  padding-left: 32px;
-  padding-right: 32px;
 }
 
 .form-group.selector label {
   font-weight: 600;
-  /* display: block; flex item now */
   margin-bottom: 0;
   color: #222;
-  font-size: 1.1rem;
-
-  border-bottom: none;
-  padding-bottom: 0;
-  width: auto;
+  font-size: 1rem;
   padding-left: 0;
+  flex-shrink: 0;
+  margin-right: 16px;
 }
 
 .form-group.selector span {
   color: #888;
-  font-size: 0.95rem;
+  font-size: 1rem;
   user-select: none;
-  margin-left: 10px;
+  margin-left: auto;
   padding-left: 0;
   padding-right: 0;
+  text-align: right;
+  flex-grow: 1;
 }
 
 .desc-info {
   display: flex;
-  justify-content: space-between;
-  font-size: 12px;
+  justify-content: flex-end;
   color: #999;
-  margin-top: 4px;
   font-weight: 400;
-  padding-left: 13px;
+  padding-left: 0;
+  font-size: 11px;
+  margin-top: 4px;
+  margin-bottom: 8px;
 }
 
 .submit-btn {
-  width: 120px;
-  min-width: 0;
-  max-width: 120px;
-  margin-left: 32px;
-  margin-top: 28px;
+  width: 30%;
   display: block;
   background-color: #3b82f6;
   color: white;
@@ -536,9 +515,10 @@ export default {
   border: none;
   border-radius: 12px;
   cursor: pointer;
-  padding: 14px 0;
+  padding: 12px 0;
   transition: background-color 0.3s ease;
   text-align: center;
+  margin: 24px auto 0 auto;
 }
 
 .submit-btn:disabled {
@@ -550,36 +530,30 @@ export default {
   border: 3px solid transparent;
   border-top: 3px solid white;
   border-radius: 50%;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   animation: spin 1s linear infinite;
   margin: 0 auto;
   display: block;
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 99;
 }
 
-.modal-success,
-.modal-select {
+.modal-success, .modal-select {
   background: white;
-  padding: 24px 32px;
+  padding: 20px 28px;
   border-radius: 16px;
   max-width: 360px;
   width: 90%;
@@ -589,44 +563,43 @@ export default {
 
 .modal-success h2 {
   margin: 0 0 12px 0;
-  font-weight: 600;
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   color: #22c55e;
 }
 
 .modal-success p {
   margin: 0 0 24px 0;
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: #333;
 }
 
 .modal-ok {
-  padding: 10px 20px;
+  padding: 8px 16px;
   background: #3b82f6;
   border: none;
   border-radius: 12px;
   color: white;
   cursor: pointer;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
 .modal-select {
   background: #f6f2fa;
-  padding: 24px 32px;
+  padding: 20px 28px;
   border-radius: 24px;
   max-width: 360px;
   width: 90%;
   box-sizing: border-box;
   text-align: left;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
 }
 
 .modal-select h3 {
   margin-top: 0;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
   font-weight: 600;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   text-align: left;
   color: #222;
 }
@@ -634,7 +607,7 @@ export default {
 .modal-select ul {
   list-style: none;
   padding: 0;
-  margin: 0 0 16px 0;
+  margin: 0 0 12px 0;
   max-height: 320px;
   overflow-y: auto;
   border: none;
@@ -643,15 +616,13 @@ export default {
 }
 
 .modal-select li {
-  padding: 12px 0;
+  padding: 10px 0;
   border-bottom: 1px solid #eee;
   cursor: pointer;
-  font-size: 1.08rem;
+  font-size: 1rem;
   color: #222;
   background: transparent;
-  transition:
-    background 0.2s,
-    color 0.2s;
+  transition: background 0.2s, color 0.2s;
 }
 
 .modal-select li:last-child {
@@ -664,33 +635,26 @@ export default {
 }
 
 .modal-ok {
-  padding: 10px 20px;
+  padding: 8px 16px;
   background: none;
   border: none;
   color: #7c4dff;
   cursor: pointer;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.95rem;
   border-radius: 8px;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .modal-price {
   background: #f6f2fa;
-  border-radius: 32px;
-  padding: 36px 28px 28px 28px;
+  border-radius: 24px;
+  padding: 28px 24px 24px 24px;
   max-width: 340px;
   width: 90vw;
   box-sizing: border-box;
   text-align: center;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
-}
-
-.modal-price h3 {
-  margin: 0 0 24px 0;
-  font-size: 2rem;
-  font-weight: 500;
-  color: #222;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
 }
 
 .input-underline {
@@ -698,9 +662,9 @@ export default {
   border: none;
   border-bottom: 2.5px solid #bbb;
   background: transparent;
-  font-size: 1.3rem;
-  padding: 16px 0 10px 0;
-  margin-bottom: 24px;
+  font-size: 1.2rem;
+  padding: 12px 0 8px 0;
+  margin-bottom: 20px;
   text-align: center;
   outline: none;
   transition: border-color 0.2s;
@@ -712,25 +676,25 @@ export default {
 
 .price-error {
   color: #e11d48;
-  font-size: 0.98rem;
-  margin-bottom: 10px;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
 }
 
 .modal-price-btns {
   display: flex;
   justify-content: center;
-  gap: 18px;
-  margin-top: 18px;
+  gap: 16px;
+  margin-top: 16px;
 }
 
 .modal-cancel {
   background: none;
   border: none;
   color: #7c4dff;
-  font-weight: 500;
-  font-size: 1.08rem;
+  font-weight: 600;
+  font-size: 1rem;
   border-radius: 18px;
-  padding: 10px 22px;
+  padding: 8px 20px;
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -740,11 +704,11 @@ export default {
   border: none;
   color: #7c4dff;
   font-weight: 600;
-  font-size: 1.08rem;
+  font-size: 1rem;
   border-radius: 18px;
-  padding: 10px 22px;
+  padding: 8px 20px;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(124, 77, 255, 0.04);
+  box-shadow: 0 2px 8px rgba(124,77,255,0.04);
   transition: background 0.2s;
 }
 

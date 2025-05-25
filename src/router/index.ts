@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Signin from '../views/signin.vue'
 import Home from '../views/Home.vue'
+import sell from '../views/sell.vue'
+import editDetailProduk from '../views/editDetailProduk.vue'
 import { auth } from '../firebase'
 import { onAuthStateChanged } from 'firebase/auth'
 
@@ -17,6 +19,12 @@ const router = createRouter({
       path: '/sell',
       name: 'sell',
       component: () => import('../views/sell.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/editDetailProduk',
+      name: 'editDetailProduk',
+      component: () => import('../views/editDetailProduk.vue'),
       meta: { requiresAuth: true },
     },
     {
