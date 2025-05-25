@@ -146,8 +146,9 @@
   <script lang="ts">
   import { defineComponent, ref, onMounted, computed } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
-  import { db } from '../firebase'; // Assuming db is exported from firebase.js/ts
+  import { db, auth, storage } from '../firebase';
   import { doc, getDoc, setDoc } from 'firebase/firestore';
+  import { uploadBytes, ref as storageRef, getDownloadURL, deleteObject } from 'firebase/storage';
 
   export default defineComponent({
     name: 'EditDetailProduk', // Renamed component name
@@ -271,18 +272,63 @@
 
       const submitForm = async () => {
         if (photos.value.length < 1) {
-          alert('Minimal upload 1 foto');
-          return;
+          alert('Minimal upload 1 foto')
+          return
         }
         if (!productName.value || !description.value || price.value === null || price.value < 0 || category.value === 'Pilih kategori' || style.value === 'Pilih style' || condition.value === 'Pilih kondisi') {
-          alert('Mohon lengkapi semua data dengan benar');
-          return;
+          alert('Mohon lengkapi semua data dengan benar')
+          return
         }
 
-        isLoading.value = true;
+        isLoading.value = true
 
         try {
-          const productRef = doc(db, 'products', productId as string);
+          const user = auth.currentUser
+          if (!user) {
+            console.error('User not logged in.')
+            alert('Anda harus login untuk mengedit produk.')
+            isLoading.value = false
+            return
+          }
+
+          // Get the original product data to compare images
+          const productRef = doc(db, 'products', productId as string)
+          const productSnap = await getDoc(productRef)
+          const originalProduct = productSnap.data()
+          const originalImages = originalProduct?.images || []
+
+          // Handle image uploads
+          const imageUrls: string[] = []
+          for (const photo of photos.value) {
+            // If the photo is a data URL (new upload), upload it to storage
+            if (photo.startsWith('data:')) {
+              const response = await fetch(photo)
+              const blob = await response.blob()
+              const timestamp = new Date().getTime()
+              const storagePath = `products/${user.uid}/${timestamp}_${Math.random().toString(36).substring(7)}`
+              const imageRef = storageRef(storage, storagePath)
+              await uploadBytes(imageRef, blob)
+              const downloadURL = await getDownloadURL(imageRef)
+              imageUrls.push(downloadURL)
+            } else {
+              // If it's an existing URL, keep it
+              imageUrls.push(photo)
+            }
+          }
+
+          // Delete removed images from storage
+          for (const originalImage of originalImages) {
+            if (!imageUrls.includes(originalImage)) {
+              try {
+                const imageRef = storageRef(storage, originalImage)
+                await deleteObject(imageRef)
+              } catch (error) {
+                console.error('Error deleting old image:', error)
+              }
+            }
+          }
+
+          // Update product data
           const updatedData = {
             name: productName.value,
             description: description.value,
@@ -290,19 +336,25 @@
             style: style.value,
             condition: condition.value,
             price: price.value,
-          };
-          await setDoc(productRef, updatedData, { merge: true });
-          isLoading.value = false;
-          showSuccessModal.value = true; // Show success modal
-          console.log('Product updated successfully!');
-          // Optionally navigate back or to product details page after success
-          // router.push({ name: 'productDetail', params: { productId: productId } });
+            images: imageUrls,
+            updatedAt: new Date()
+          }
+
+          await setDoc(productRef, updatedData, { merge: true })
+          isLoading.value = false
+          showSuccessModal.value = true
+          console.log('Product updated successfully!')
+          
+          // Navigate back after successful update
+          setTimeout(() => {
+            router.push('/akun')
+          }, 1500)
         } catch (error) {
-          console.error('Error updating product:', error);
-          isLoading.value = false;
-          alert('Gagal menyimpan perubahan produk. Silakan coba lagi.');
+          console.error('Error updating product:', error)
+          isLoading.value = false
+          alert('Gagal menyimpan perubahan produk. Silakan coba lagi.')
         }
-      };
+      }
 
       const closeForm = () => {
         router.go(-1); // Navigate back to the previous page
