@@ -62,6 +62,12 @@ const router = createRouter({
       component: () => import('../views/Cart.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/akun',
+      name: 'akun',
+      component: () => import('../views/akun.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 
