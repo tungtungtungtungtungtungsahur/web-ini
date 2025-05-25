@@ -438,8 +438,7 @@ export default defineComponent({
   box-sizing: border-box;
   padding-left: 0;
   padding-right: 0;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #ccc;
+  padding-bottom: 0;
 }
 
 .photo-list {
@@ -607,7 +606,7 @@ export default defineComponent({
   padding: 12px 0;
   transition: background-color 0.3s ease;
   text-align: center;
-  margin: 24px auto 0 auto;
+  margin: 10px auto 0 auto;
 }
 
 .submit-btn:disabled {
