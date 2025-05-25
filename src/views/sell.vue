@@ -60,9 +60,7 @@
       </div>
       <div class="form-group selector" @click="openPriceModal">
         <label>Harga</label>
-        <span>{{
-          price !== null ? 'Rp ' + price : 'Masukkan harga'
-        }}</span>
+        <span>{{ price !== null ? 'Rp ' + price : 'Masukkan harga' }}</span>
       </div>
 
       <!-- Submit Button -->
@@ -141,7 +139,7 @@
 import { defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth, db, storage } from '../firebase'
-import { collection, addDoc } from 'firebase/firestore'
+import { collection, addDoc, doc, getDoc } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { onAuthStateChanged } from 'firebase/auth'
 
@@ -187,10 +185,25 @@ export default defineComponent({
     }
   },
   created() {
-    const isKTPVerified = localStorage.getItem('ktpVerified')
-    if (!isKTPVerified) {
-      this.router.push('/ktp')
-    }
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userRef = doc(db, 'users', user.uid)
+        const userSnap = await getDoc(userRef)
+
+        if (userSnap.exists()) {
+          const userData = userSnap.data()
+          if (!userData.ktpVerified) {
+            this.router.push('/ktp')
+          }
+        } else {
+          // If user document doesn't exist, redirect to KTP verification
+          this.router.push('/ktp')
+        }
+      } else {
+        // If user is not logged in, redirect to signin
+        this.router.push('/signin')
+      }
+    })
   },
   computed: {
     hashtagCount() {
@@ -203,32 +216,31 @@ export default defineComponent({
   },
   methods: {
     triggerFileInput() {
-      (this.$refs.fileInput as HTMLInputElement).click()
+      ;(this.$refs.fileInput as HTMLInputElement).click()
     },
     onPhotoChange(event: Event) {
-      const files = (event.target as HTMLInputElement).files;
-      console.log('Files selected:', files);
-      if (!files?.length) return;
+      const files = (event.target as HTMLInputElement).files
+      console.log('Files selected:', files)
+      if (!files?.length) return
 
-      const maxPhotos = 4;
-      const selectedFiles = Array.from(files);
+      const maxPhotos = 4
+      const selectedFiles = Array.from(files)
 
-      const filesToAdd = selectedFiles.slice(0, maxPhotos - this.imageFiles.length);
+      const filesToAdd = selectedFiles.slice(0, maxPhotos - this.imageFiles.length)
 
-      filesToAdd.forEach(file => {
-        this.imageFiles.push(file);
-        const reader = new FileReader();
+      filesToAdd.forEach((file) => {
+        this.imageFiles.push(file)
+        const reader = new FileReader()
         reader.onload = (e) => {
-          this.photos.push(e.target?.result as string);
-        };
-        reader.readAsDataURL(file);
-      });
-
-      (event.target as HTMLInputElement).value = '';
+          this.photos.push(e.target?.result as string)
+        }
+        reader.readAsDataURL(file)
+      })
+      ;(event.target as HTMLInputElement).value = ''
     },
     removePhoto(idx: number) {
-      this.photos.splice(idx, 1);
-      this.imageFiles.splice(idx, 1);
+      this.photos.splice(idx, 1)
+      this.imageFiles.splice(idx, 1)
     },
     selectCategory(cat: string) {
       this.category = cat
@@ -264,7 +276,9 @@ export default defineComponent({
       if (
         !this.productName ||
         !this.description ||
-        this.price === null || typeof this.price !== 'number' || this.price < 0 ||
+        this.price === null ||
+        typeof this.price !== 'number' ||
+        this.price < 0 ||
         this.category === 'Pilih kategori' ||
         this.style === 'Pilih style' ||
         this.condition === 'Pilih kondisi'
@@ -273,25 +287,25 @@ export default defineComponent({
         return
       }
 
-      this.isLoading = true;
+      this.isLoading = true
 
-      const user = auth.currentUser;
+      const user = auth.currentUser
       if (!user) {
-        console.error('User not logged in.');
-        alert('Anda harus login untuk menjual produk.');
-        this.isLoading = false;
-        return;
+        console.error('User not logged in.')
+        alert('Anda harus login untuk menjual produk.')
+        this.isLoading = false
+        return
       }
 
       try {
-        const imageUrls: string[] = [];
+        const imageUrls: string[] = []
         for (const file of this.imageFiles) {
-          const timestamp = new Date().getTime();
-          const storagePath = `products/${user.uid}/${timestamp}_${file.name}`;
-          const imageRef = storageRef(storage, storagePath);
-          await uploadBytes(imageRef, file);
-          const downloadURL = await getDownloadURL(imageRef);
-          imageUrls.push(downloadURL);
+          const timestamp = new Date().getTime()
+          const storagePath = `products/${user.uid}/${timestamp}_${file.name}`
+          const imageRef = storageRef(storage, storagePath)
+          await uploadBytes(imageRef, file)
+          const downloadURL = await getDownloadURL(imageRef)
+          imageUrls.push(downloadURL)
         }
 
         await addDoc(collection(db, 'products'), {
@@ -304,19 +318,18 @@ export default defineComponent({
           price: this.price,
           images: imageUrls,
           createdAt: new Date(),
-        });
+        })
 
-        this.isLoading = false;
-        this.showSuccessModal = true;
-
+        this.isLoading = false
+        this.showSuccessModal = true
       } catch (error) {
-        console.error('Error selling product:', error);
-        this.isLoading = false;
-        alert('Gagal menjual produk. Silakan coba lagi.');
+        console.error('Error selling product:', error)
+        this.isLoading = false
+        alert('Gagal menjual produk. Silakan coba lagi.')
       }
     },
     closeForm() {
-      this.router.push('/');
+      this.router.push('/')
     },
     onDescriptionInput(e: Event) {
       const words = (e.target as HTMLTextAreaElement).value.trim().split(/\s+/).filter(Boolean)
@@ -325,12 +338,12 @@ export default defineComponent({
       }
     },
     closeSuccessModalAndNavigate() {
-      this.showSuccessModal = false;
+      this.showSuccessModal = false
       this.router.push({
         path: '/akunTokoSisiPenjual',
-        query: { tab: 'Barang' }
-      });
-    }
+        query: { tab: 'Barang' },
+      })
+    },
   },
 })
 </script>
@@ -348,7 +361,7 @@ export default defineComponent({
   background: white;
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .photo-upload {

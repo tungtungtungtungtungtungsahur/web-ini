@@ -47,8 +47,9 @@
 <script lang="ts">
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
 import { FirebaseError } from 'firebase/app'
-import { auth } from '../firebase'
+import { auth, db } from '../firebase'
 import { useRouter } from 'vue-router'
+import { doc, setDoc } from 'firebase/firestore'
 
 export default {
   name: 'SignUpForm',
@@ -97,6 +98,16 @@ export default {
         // Update user profile with display name
         await updateProfile(userCredential.user, {
           displayName: this.name,
+        })
+
+        // Store user data in Firestore
+        await setDoc(doc(db, 'users', userCredential.user.uid), {
+          name: this.name,
+          username: this.username,
+          email: this.email,
+          createdAt: new Date(),
+          ktpVerified: false,
+          ktpVerifiedAt: null,
         })
 
         this.showSuccessModal = true

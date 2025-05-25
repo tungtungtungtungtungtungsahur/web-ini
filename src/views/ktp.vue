@@ -50,6 +50,8 @@
 import { defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import Tesseract from 'tesseract.js'
+import { auth, db } from '../firebase'
+import { doc, updateDoc } from 'firebase/firestore'
 
 interface TesseractProgress {
   status: string
@@ -124,8 +126,14 @@ export default defineComponent({
         const confidenceScore = foundPatterns.length / requiredPatterns.length
 
         if (confidenceScore >= 0.75) {
-          // Store verification status in localStorage
-          localStorage.setItem('ktpVerified', 'true')
+          // Update verification status in Firestore
+          const user = auth.currentUser
+          if (user) {
+            await updateDoc(doc(db, 'users', user.uid), {
+              ktpVerified: true,
+              ktpVerifiedAt: new Date(),
+            })
+          }
           this.showSuccessModal = true
         } else {
           this.verificationError = 'Format KTP tidak valid'
