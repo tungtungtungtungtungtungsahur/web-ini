@@ -1,159 +1,155 @@
 <template>
+  <AppBar />
   <div class="tentang-toko-page">
-    <header class="header">
-      <div class="header-content">
-        <button class="back-button" @click="goBack">←</button>
-        <h1 :class="{'product-detail-title': selectedProduct}">{{ selectedProduct ? selectedProduct.name : 'Akun Saya' }}</h1>
-        <div class="header-icons" v-if="selectedProduct">
-          <span class="edit-icon-header" @click="editProduct">✏️</span>
-          <span class="delete-icon-header" @click="deleteProduct">🗑️</span>
+    <div class="main-container">
+      <section class="profile-section" v-if="!selectedProduct">
+        <div class="profile-image">
+          <img :src="profileImageUrl" alt="Profile Picture">
         </div>
-      </div>
-    </header>
+        <div class="profile-info">
+          <h2>{{ name }}</h2>
+          <p>@{{ username }} <span class="verified-badge">Terverifikasi</span></p>
+          <p>📍 {{ location }}</p>
+        </div>
+      </section>
 
-    <section class="profile-section" v-if="!selectedProduct">
-      <div class="profile-image">
-        <img :src="profileImageUrl" alt="Profile Picture">
-      </div>
-      <div class="profile-info">
-        <h2>{{ name }}</h2>
-        <p>@{{ username }} <span class="verified-badge">Terverifikasi</span></p>
-        <p>📍 {{ location }}</p>
-      </div>
-    </section>
-
-    <nav class="tabs" v-if="!selectedProduct">
-      <button
-        :class="{ 'tab-button': true, 'active': activeTab === 'Barang' }"
-        @click="activeTab = 'Barang'"
-      >
-        Barang
-      </button>
-      <button
-        :class="{ 'tab-button': true, 'active': activeTab === 'Tentang' }"
-        @click="activeTab = 'Tentang'"
-      >
-        Tentang
-      </button>
-    </nav>
-
-    <section class="barang-section" v-if="activeTab === 'Barang' && !selectedProduct">
-      <div class="barang-list">
-        <div class="barang-item" v-for="product in userProducts" :key="product.id">
-          <img :src="product.imageUrl" alt="Product Image" class="product-image">
-          <div class="product-details">
-            <div class="product-info">
-              <h3>{{ product.name }}</h3>
-              <p>Rp {{ product.price }}</p>
-            </div>
-            <span class="edit-icon" @click="viewProductDetail(product)">✏️</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="tentang-section" v-if="activeTab === 'Tentang' && !selectedProduct">
-      <div class="info-container" v-if="hasStoreData">
-        <div class="info-item">
-          <span class="icon">📄</span>
-          <div class="text-content">
-            <h3>Deskripsi</h3>
-            <p>{{ storeDescription }}</p>
-          </div>
-        </div>
-        <div class="info-item">
-          <span class="icon">📍</span>
-          <div class="text-content">
-            <h3>Lokasi</h3>
-            <p>{{ storeLocation }}</p>
-          </div>
-        </div>
-        <div class="info-item">
-          <span class="icon">👥</span>
-          <div class="text-content">
-            <h3>Kategori</h3>
-            <p>{{ storeCategories }}</p>
-          </div>
-        </div>
-        <div class="info-item">
-          <span class="icon">📞</span>
-          <div class="text-content">
-            <h3>Kontak</h3>
-            <p>{{ storeContact }}</p>
-          </div>
-        </div>
-        <div class="info-item">
-          <span class="icon">⏰</span>
-          <div class="text-content">
-            <h3>Jam Operasional</h3>
-            <p>{{ storeOperatingHours }}</p>
-          </div>
-        </div>
-      </div>
-      <div class="info-container" v-else>
-        <div class="no-data-content">
-          <p>Tidak terdapat informasi terkait toko ini</p>
-          <button class="fill-data-btn" @click="$router.push('/BioDataToko')">Isi Biodata Toko</button>
-        </div>
-      </div>
-    </section>
-
-    <section class="product-detail-section" v-if="selectedProduct">
-      <div class="product-images">
-        <div v-for="(image, index) in selectedProduct.images" :key="index" class="product-image-item">
-          <img
-            :src="image || '/placeholder.png'"
-            :alt="`${selectedProduct.name} - ${index + 1}`"
-            @error="handleImageError"
-            @click="openImageModal(image || '/placeholder.png')"
+      <div class="tab-box">
+        <nav class="tabs" v-if="!selectedProduct">
+          <button
+            :class="{ 'tab-button': true, 'active': activeTab === 'Barang' }"
+            @click="activeTab = 'Barang'"
           >
+            Barang
+          </button>
+          <button
+            :class="{ 'tab-button': true, 'active': activeTab === 'Tentang' }"
+            @click="activeTab = 'Tentang'"
+          >
+            Tentang
+          </button>
+        </nav>
+
+        <section class="barang-section" v-if="activeTab === 'Barang' && !selectedProduct">
+          <div class="barang-list">
+            <div class="barang-item" v-for="product in userProducts" :key="product.id">
+              <img :src="product.imageUrl" alt="Product Image" class="product-image">
+              <div class="product-details">
+                <div class="product-info">
+                  <h3>{{ product.name }}</h3>
+                  <p>Rp {{ product.price }}</p>
+                </div>
+                <span class="edit-icon" @click="viewProductDetail(product)">✏️</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="tentang-section" v-if="activeTab === 'Tentang' && !selectedProduct">
+          <div class="info-container" v-if="hasStoreData">
+            <div class="info-item">
+              <span class="icon">📄</span>
+              <div class="text-content">
+                <h3>Deskripsi</h3>
+                <p>{{ storeDescription }}</p>
+              </div>
+            </div>
+            <div class="info-item">
+              <span class="icon">📍</span>
+              <div class="text-content">
+                <h3>Lokasi</h3>
+                <p>{{ location }}</p>
+              </div>
+            </div>
+            <div class="info-item">
+              <span class="icon">👥</span>
+              <div class="text-content">
+                <h3>Kategori</h3>
+                <p>{{ storeCategories }}</p>
+              </div>
+            </div>
+            <div class="info-item">
+              <span class="icon">📞</span>
+              <div class="text-content">
+                <h3>Kontak</h3>
+                <p>{{ storeContact }}</p>
+              </div>
+            </div>
+            <div class="info-item">
+              <span class="icon">⏰</span>
+              <div class="text-content">
+                <h3>Jam Operasional</h3>
+                <p>{{ storeOperatingHours }}</p>
+              </div>
+            </div>
+          </div>
+          <div class="info-container" v-else>
+            <div class="no-data-content">
+              <p>Tidak terdapat informasi terkait toko ini</p>
+              <button class="fill-data-btn" @click="$router.push('/BioDataToko')">Isi Biodata Toko</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="product-detail-section" v-if="selectedProduct">
+        <div class="product-images">
+          <div v-for="(image, index) in selectedProduct.images" :key="index" class="product-image-item">
+            <img
+              :src="image || '/placeholder.png'"
+              :alt="`${selectedProduct.name} - ${index + 1}`"
+              @error="handleImageError"
+              @click="openImageModal(image || '/placeholder.png')"
+            >
+          </div>
+        </div>
+        <div class="detail-content">
+          <h2>{{ selectedProduct.name }}</h2>
+          <p class="detail-price">Rp {{ selectedProduct.price }}</p>
+
+          <div class="detail-section">
+            <h3>Deskripsi</h3>
+            <p>{{ selectedProduct.description }}</p>
+          </div>
+
+          <div class="detail-section">
+            <h3>Detail Produk</h3>
+            <p>Kategori: {{ selectedProduct.category }}</p>
+            <p>Kondisi: {{ selectedProduct.condition }}</p>
+            <p>Style: {{ selectedProduct.style }}</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="modal-overlay" v-if="showDeleteModal"></div>
+      <div class="modal-container" v-if="showDeleteModal">
+        <div class="modal-content">
+          <p>Apakah Anda yakin ingin menghapus produk ini?</p>
+          <div class="modal-buttons">
+            <button @click="confirmDelete">Ya</button>
+            <button @click="cancelDelete">Tidak</button>
+          </div>
         </div>
       </div>
-      <div class="detail-content">
-        <h2>{{ selectedProduct.name }}</h2>
-        <p class="detail-price">Rp {{ selectedProduct.price }}</p>
-        
-        <div class="detail-section">
-          <h3>Deskripsi</h3>
-          <p>{{ selectedProduct.description }}</p>
-        </div>
 
-        <div class="detail-section">
-          <h3>Detail Produk</h3>
-          <p>Kategori: {{ selectedProduct.category }}</p>
-          <p>Kondisi: {{ selectedProduct.condition }}</p>
-          <p>Style: {{ selectedProduct.style }}</p>
-        </div>
-      </div>
-    </section>
-
-    <div class="modal-overlay" v-if="showDeleteModal"></div>
-    <div class="modal-container" v-if="showDeleteModal">
-      <div class="modal-content">
-        <p>Apakah Anda yakin ingin menghapus produk ini?</p>
-        <div class="modal-buttons">
-          <button @click="confirmDelete">Ya</button>
-          <button @click="cancelDelete">Tidak</button>
-        </div>
+      <div class="image-modal-overlay" v-if="showImageModal" @click="closeImageModal"></div>
+      <div class="image-modal-container" v-if="showImageModal">
+        <img :src="currentZoomImageUrl" alt="Zoomed Image" class="zoomed-image">
       </div>
     </div>
-
-    <div class="image-modal-overlay" v-if="showImageModal" @click="closeImageModal"></div>
-    <div class="image-modal-container" v-if="showImageModal">
-      <img :src="currentZoomImageUrl" alt="Zoomed Image" class="zoomed-image">
-    </div>
-
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import AppBar from '../components/AppBar.vue'
 import { auth, db } from '../firebase'
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
-import { useRoute } from 'vue-router'
 
 export default {
   name: 'AkunTokoSisiPenjual',
+  components: {
+    AppBar
+  },
   data() {
     return {
       profileImageUrl: '',
@@ -184,7 +180,7 @@ export default {
       if (user) {
         const userRef = doc(db, 'users', user.uid);
         const userSnap = await getDoc(userRef);
-        
+
         if (userSnap.exists()) {
           const userData = userSnap.data();
           this.name = userData.name || '';
@@ -194,7 +190,7 @@ export default {
 
         const storeRef = doc(db, 'stores', user.uid);
         const storeSnap = await getDoc(storeRef);
-        
+
         if (storeSnap.exists()) {
           const storeData = storeSnap.data();
           this.storeDescription = storeData.description || '';
@@ -218,7 +214,7 @@ export default {
         const productsCollection = collection(db, 'products');
         const userProductsQuery = query(productsCollection, where('sellerId', '==', userId));
         const querySnapshot = await getDocs(userProductsQuery);
-        
+
         this.userProducts = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
@@ -271,13 +267,17 @@ export default {
 
 <style scoped>
 .tentang-toko-page {
-  padding-top: 100px;
-  padding-bottom: 20px;
-  background-color: #f8f8f8;
+  padding: 20px;
+  background: #f9f9f9;
   min-height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-left: 70px;
+}
+
+.main-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0;
 }
 
 .header {
@@ -355,16 +355,12 @@ body {
 .profile-section {
   display: flex;
   align-items: center;
-
-  padding: 0;
-  margin: 10px 20px 20px;
+  padding: 16px 24px 24px 24px;
+  margin: 10px 0 20px 0;
   background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-
-  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
-
 
 .profile-image img {
   width: 70px;
@@ -417,7 +413,7 @@ body {
 
 .tabs {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   margin-bottom: 30px;
   border-bottom: 1px solid #ddd;
   padding: 0 20px;
@@ -431,6 +427,13 @@ body {
    padding-bottom: 0;
 }
 
+.tab-box {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom: 32px;
+  padding: 16px 24px 24px 24px;
+}
 
 .tab-button {
   padding: 12px 0;
@@ -462,9 +465,11 @@ body {
   background-color: #000;
 }
 
-.tentang-section {
-  padding: 0 20px;
-  margin-top: 20px;
+.tentang-section, .barang-section {
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 16px 24px 24px 24px;
 }
 
 .info-container {

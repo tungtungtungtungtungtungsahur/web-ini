@@ -104,7 +104,7 @@ export default {
 
 <style scoped>
 .account-container {
-  background: #fdf6fa;
+  background: #f9f9f9;
   min-height: 100vh;
   padding: 20px;
   font-family: sans-serif;
@@ -141,6 +141,7 @@ export default {
   padding: 4px;
   font-size: 14px;
   border: 1px solid #ddd;
+  color: #b71c1c;
 }
 
 .username {
