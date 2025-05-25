@@ -64,8 +64,8 @@
         <div v-if="showSuccessModal" class="modal-overlay">
           <div class="modal-success">
             <h2>Sukses</h2>
-            <p>Produk berhasil ditambahkan ke katalog</p>
-            <button class="modal-ok" @click="showSuccessModal = false">OK</button>
+            <p>Biodata toko berhasil disimpan</p>
+            <button class="modal-ok" @click="closeSuccessModalAndNavigate">OK</button>
           </div>
         </div>
   
@@ -109,14 +109,9 @@
           <div class="modal-select modal-price">
             <h3>Atur Jam Operasional</h3>
             <input
-              v-model="tempJamOperasionalStart"
-              type="time"
-              class="input-underline"
-            />
-            <span>-</span>
-             <input
-              v-model="tempJamOperasionalEnd"
-              type="time"
+              v-model="tempJamOperasional"
+              type="text"
+              placeholder="Masukkan jam operasional"
               class="input-underline"
             />
             <div class="modal-price-btns">
@@ -147,10 +142,13 @@
   </template>
   
   <script lang="ts">
-  import { defineComponent } from 'vue'
+  import { defineComponent, ref } from 'vue'
+  import { auth, db } from '../firebase' // Import auth and db
+  import { doc, getDoc, setDoc } from 'firebase/firestore' // Import Firestore functions
+  import { onAuthStateChanged } from 'firebase/auth' // Import Auth state listener
   
   export default defineComponent({
-    name: 'SellProduct',
+    name: 'BioDataToko',
     data() {
       return {
         photos: [] as string[],
@@ -202,10 +200,8 @@
           'Buku',
           'Lainnya',
         ],
-        jamOperasionalStart: null,
-        jamOperasionalEnd: null,
-        tempJamOperasionalStart: null,
-        tempJamOperasionalEnd: null,
+        jamOperasional: '',
+        tempJamOperasional: '',
         showJamOperasionalModal: false,
         kontak: null,
         tempKontak: null,
@@ -213,6 +209,28 @@
         lokasiInputModal: '',
         selectedLokasiDisplay: null,
       }
+    },
+    created() {
+      // Fetch existing biodata when component is created
+      onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          const storeRef = doc(db, 'stores', user.uid);
+          const storeSnap = await getDoc(storeRef);
+
+          if (storeSnap.exists()) {
+            const storeData = storeSnap.data();
+            // Populate form fields with fetched data
+            this.description = storeData.description || '';
+            this.selectedLokasiDisplay = storeData.location || null;
+            this.selectedKategori = storeData.categories || [];
+            this.jamOperasional = storeData.operatingHours || '';
+            this.kontak = storeData.contact || null;
+          }
+        } else {
+          // Handle case where user is not logged in, maybe redirect
+          console.log('User not logged in, cannot fetch biodata');
+        }
+      });
     },
     computed: {
       hashtagCount() {
@@ -223,15 +241,7 @@
         return this.description.trim().split(/\s+/).filter(Boolean).length
       },
       displayJamOperasional() {
-        if (this.jamOperasionalStart && this.jamOperasionalEnd) {
-          return `${this.jamOperasionalStart} - ${this.jamOperasionalEnd}`;
-        } else if (this.jamOperasionalStart) {
-          return `${this.jamOperasionalStart} - Selesai`;
-        } else if (this.jamOperasionalEnd) {
-          return `Mulai - ${this.jamOperasionalEnd}`;
-        } else {
-          return null;
-        }
+        return this.jamOperasional;
       },
     },
     methods: {
@@ -265,25 +275,48 @@
         this.showPriceModal = false
         this.priceError = ''
       },
-      submitForm() {
+      async submitForm() {
+        // Validate store biodata fields
         if (
-          !this.productName ||
           !this.description ||
-          this.price === null ||
-          this.price === 'Masukkan harga' ||
-          this.price < 0 ||
-          this.category === 'Pilih kategori' ||
-          this.style === 'Pilih style' ||
-          this.condition === 'Pilih kondisi'
+          !this.selectedLokasiDisplay ||
+          this.selectedKategori.length === 0 ||
+          !this.jamOperasional ||
+          !this.kontak
         ) {
-          alert('Mohon lengkapi semua data dengan benar')
-          return
+          alert('Mohon lengkapi semua data biodata toko dengan benar.');
+          return;
         }
-        this.isLoading = true
-        setTimeout(() => {
-          this.isLoading = false
-          this.showSuccessModal = true
-        }, 1500)
+
+        this.isLoading = true;
+
+        try {
+          const user = auth.currentUser;
+          if (user) {
+            const storeRef = doc(db, 'stores', user.uid);
+            await setDoc(storeRef, {
+              description: this.description,
+              location: this.selectedLokasiDisplay,
+              categories: this.selectedKategori,
+              operatingHours: this.jamOperasional,
+              contact: this.kontak,
+              // Add any other relevant fields here
+            }, { merge: true }); // Use merge: true to not overwrite other potential fields
+
+            this.isLoading = false;
+            this.showSuccessModal = true; // Show success modal
+
+          } else {
+            console.error('User not logged in, cannot save biodata');
+            this.isLoading = false;
+            // Optionally show an error message to the user
+          }
+        } catch (error) {
+          console.error('Error saving biodata:', error);
+          this.isLoading = false;
+          // Optionally show a more user-friendly error message
+          alert('Gagal menyimpan biodata. Silakan coba lagi.');
+        }
       },
       closeForm() {
         alert('Tutup form')
@@ -315,12 +348,11 @@
         }
       },
       setJamOperasional() {
-        if(this.tempJamOperasionalStart && this.tempJamOperasionalEnd) {
-          this.jamOperasionalStart = this.tempJamOperasionalStart;
-          this.jamOperasionalEnd = this.tempJamOperasionalEnd;
+        if(this.tempJamOperasional) {
+          this.jamOperasional = this.tempJamOperasional;
           this.showJamOperasionalModal = false;
         } else {
-          alert('Mohon pilih rentang jam operasional');
+          alert('Mohon masukkan jam operasional');
         }
       },
       setKontak() {
@@ -330,6 +362,10 @@
         } else {
           alert('Mohon masukkan nomor kontak');
         }
+      },
+      closeSuccessModalAndNavigate() {
+        this.showSuccessModal = false;
+        this.$router.push('/akunTokoSisiPenjual');
       }
     },
   })
@@ -373,7 +409,7 @@
     left: 0;
     right: 0;
     padding: 16px 24px;
-    background: #1b2a30;
+    background: #2c3e50;
     box-sizing: border-box;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     z-index: 10;

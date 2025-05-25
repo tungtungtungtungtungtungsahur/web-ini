@@ -82,7 +82,7 @@
         <div class="modal-success">
           <h2>Sukses</h2>
           <p>Produk berhasil ditambahkan ke katalog</p>
-          <button class="modal-ok" @click="showSuccessModal = false">OK</button>
+          <button class="modal-ok" @click="closeSuccessModalAndNavigate">OK</button>
         </div>
       </div>
 
@@ -146,6 +146,10 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
+import { auth, db, storage } from '../firebase'
+import { collection, addDoc } from 'firebase/firestore'
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { onAuthStateChanged } from 'firebase/auth'
 
 export default defineComponent({
   name: 'SellProduct',
@@ -156,13 +160,12 @@ export default defineComponent({
   data() {
     return {
       photos: [] as string[],
-      photo: null as string | null,
       productName: '',
       description: '',
       category: 'Pilih kategori',
       style: 'Pilih style',
       condition: 'Pilih kondisi',
-      price: null,
+      price: null as number | null,
       showSuccessModal: false,
       isLoading: false,
       categories: [
@@ -184,12 +187,12 @@ export default defineComponent({
       showStyleModal: false,
       showConditionModal: false,
       showPriceModal: false,
-      tempPrice: null,
+      tempPrice: null as number | null,
       priceError: '',
+      imageFiles: [] as File[],
     }
   },
   created() {
-    // Check if user has verified their KTP
     const isKTPVerified = localStorage.getItem('ktpVerified')
     if (!isKTPVerified) {
       this.router.push('/ktp')
@@ -206,21 +209,32 @@ export default defineComponent({
   },
   methods: {
     triggerFileInput() {
-      ;(this.$refs.fileInput as HTMLInputElement).click()
+      (this.$refs.fileInput as HTMLInputElement).click()
     },
     onPhotoChange(event: Event) {
-      const files = (event.target as HTMLInputElement).files
-      if (!files?.length) return
-      const maxPhotos = 4
-      // Gabungkan foto lama dan baru, lalu ambil maksimal 4
-      const newFiles = Array.from(files).slice(0, maxPhotos - this.photos.length)
-      const newUrls = newFiles.map((file) => URL.createObjectURL(file))
-      this.photos = [...this.photos, ...newUrls].slice(0, maxPhotos)
-      this.photo = this.photos[0] || null
+      const files = (event.target as HTMLInputElement).files;
+      console.log('Files selected:', files);
+      if (!files?.length) return;
+
+      const maxPhotos = 4;
+      const selectedFiles = Array.from(files);
+
+      const filesToAdd = selectedFiles.slice(0, maxPhotos - this.imageFiles.length);
+
+      filesToAdd.forEach(file => {
+        this.imageFiles.push(file);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          this.photos.push(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      });
+
+      (event.target as HTMLInputElement).value = '';
     },
     removePhoto(idx: number) {
-      this.photos.splice(idx, 1)
-      this.photo = this.photos[0] || null
+      this.photos.splice(idx, 1);
+      this.imageFiles.splice(idx, 1);
     },
     selectCategory(cat: string) {
       this.category = cat
@@ -248,17 +262,15 @@ export default defineComponent({
       this.showPriceModal = false
       this.priceError = ''
     },
-    submitForm() {
-      if (this.photos.length < 1) {
+    async submitForm() {
+      if (this.imageFiles.length < 1) {
         alert('Minimal upload 1 foto')
         return
       }
       if (
         !this.productName ||
         !this.description ||
-        this.price === null ||
-        this.price === 'Masukkan harga' ||
-        this.price < 0 ||
+        this.price === null || typeof this.price !== 'number' || this.price < 0 ||
         this.category === 'Pilih kategori' ||
         this.style === 'Pilih style' ||
         this.condition === 'Pilih kondisi'
@@ -266,11 +278,48 @@ export default defineComponent({
         alert('Mohon lengkapi semua data dengan benar')
         return
       }
-      this.isLoading = true
-      setTimeout(() => {
-        this.isLoading = false
-        this.showSuccessModal = true
-      }, 1500)
+
+      this.isLoading = true;
+
+      const user = auth.currentUser;
+      if (!user) {
+        console.error('User not logged in.');
+        alert('Anda harus login untuk menjual produk.');
+        this.isLoading = false;
+        return;
+      }
+
+      try {
+        const imageUrls: string[] = [];
+        for (const file of this.imageFiles) {
+          const timestamp = new Date().getTime();
+          const storagePath = `products/${user.uid}/${timestamp}_${file.name}`;
+          const imageRef = storageRef(storage, storagePath);
+          await uploadBytes(imageRef, file);
+          const downloadURL = await getDownloadURL(imageRef);
+          imageUrls.push(downloadURL);
+        }
+
+        await addDoc(collection(db, 'products'), {
+          sellerId: user.uid,
+          name: this.productName,
+          description: this.description,
+          category: this.category,
+          style: this.style,
+          condition: this.condition,
+          price: this.price,
+          images: imageUrls,
+          createdAt: new Date(),
+        });
+
+        this.isLoading = false;
+        this.showSuccessModal = true;
+
+      } catch (error) {
+        console.error('Error selling product:', error);
+        this.isLoading = false;
+        alert('Gagal menjual produk. Silakan coba lagi.');
+      }
     },
     closeForm() {
       alert('Tutup form')
@@ -281,6 +330,13 @@ export default defineComponent({
         this.description = words.slice(0, 500).join(' ')
       }
     },
+    closeSuccessModalAndNavigate() {
+      this.showSuccessModal = false;
+      this.router.push({
+        path: '/akunTokoSisiPenjual',
+        query: { tab: 'Barang' }
+      });
+    }
   },
 })
 </script>
@@ -309,6 +365,8 @@ export default defineComponent({
   justify-content: center;
   align-items: center;
   margin-top: 0;
+  padding-top: 80px;
+  padding-left: 80px;
 }
 
 .header {
@@ -323,12 +381,13 @@ export default defineComponent({
   left: 0;
   right: 0;
   padding: 16px 24px;
-  background: #1b2a30;
+  background: #2c3e50;
   box-sizing: border-box;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   z-index: 10;
   justify-content: left;
   align-items: left;
+  padding-left: 80px;
 }
 
 .back-arrow {
@@ -388,6 +447,7 @@ export default defineComponent({
   gap: 16px;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 .photo-preview {

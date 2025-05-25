@@ -39,7 +39,7 @@
 
     <section class="barang-section" v-if="activeTab === 'Barang' && !selectedProduct">
       <div class="barang-list">
-        <div class="barang-item" v-for="product in products" :key="product.id">
+        <div class="barang-item" v-for="product in userProducts" :key="product.id">
           <img :src="product.imageUrl" alt="Product Image" class="product-image">
           <div class="product-details">
             <div class="product-info">
@@ -134,7 +134,7 @@
 
 <script>
 import { auth, db } from '../firebase'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
 
 export default {
@@ -152,12 +152,7 @@ export default {
       storeContact: '',
       storeOperatingHours: '',
       hasStoreData: false,
-      products: [
-        { id: 1, name: 'lampu', price: 1000, imageUrl: 'https://via.placeholder.com/300', description: 'hitam legam dan kalcwer', category: 'Elektronik', condition: 'Baru', style: 'Modern' },
-        { id: 2, name: 'pintu lift', price: 125000000, imageUrl: 'https://via.placeholder.com/300', description: 'Deskripsi pintu lift', category: 'Furniture', condition: 'Baru', style: 'Minimalis' },
-        { id: 3, name: 'Product 3', price: 50000, imageUrl: 'https://via.placeholder.com/300', description: 'Deskripsi Product 3', category: 'Aksesoris', condition: 'Bekas', style: 'Classic' },
-        { id: 4, name: 'Product 4', price: 25000, imageUrl: 'https://via.placeholder.com/300', description: 'Deskripsi Product 4', category: 'Sepatu', condition: 'Baru', style: 'Sporty' },
-      ],
+      userProducts: [],
       selectedProduct: null,
       showDeleteModal: false,
       productToDelete: null,
@@ -191,11 +186,29 @@ export default {
         } else {
           this.hasStoreData = false;
         }
+
+        this.fetchUserProducts(user.uid);
       }
     });
   },
   methods: {
+    async fetchUserProducts(userId) {
+      try {
+        const productsCollection = collection(db, 'products');
+        const userProductsQuery = query(productsCollection, where('sellerId', '==', userId));
+        const querySnapshot = await getDocs(userProductsQuery);
+        
+        this.userProducts = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        console.log('Fetched user products:', this.userProducts);
+      } catch (error) {
+        console.error('Error fetching user products:', error);
+      }
+    },
     viewProductDetail(product) {
+      console.log('Viewing product detail for:', product);
       this.selectedProduct = product;
     },
     goBack() {
@@ -210,7 +223,7 @@ export default {
     },
     confirmDelete() {
       console.log('Deleting product:', this.productToDelete.id);
-      this.products = this.products.filter(product => product.id !== this.productToDelete.id);
+      this.userProducts = this.userProducts.filter(product => product.id !== this.productToDelete.id);
       this.selectedProduct = null;
       this.showDeleteModal = false;
       this.productToDelete = null;

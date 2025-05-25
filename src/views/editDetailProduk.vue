@@ -143,117 +143,210 @@
     </div>
   </template>
   
-  <script>
-  export default {
-    data() {
-      return {
-        photos: [], // untuk menyimpan banyak foto
-        photo: null, 
-        productName: '',
-        description: '',
-        category: 'Pilih kategori',
-        style: 'Pilih style',
-        condition: 'Pilih kondisi',
-        price: null,
-        showSuccessModal: false,
-        isLoading: false,
-        categories: [
-          'Fashion', 'Furniture', 'Elektronik', 'Aksesoris', 'Sepatu', 'Tas', 'Kosmetik',
-          'Perlengkapan Rumah', 'Kacamata', 'Buku', 'Lainnya'
-        ],
-        conditions: [
-          'Baru', 'Bekas', 'Baru dengan tag', 'Bekas seperti baru'
-        ],
-        styles: [
-          'Batik', 'Casual', 'Formal', 'Sporty', 'Vintage', 'Modern', 'Minimalis', 'Lainnya'
-        ],
-        showCategoryModal: false,
-        showStyleModal: false,
-        showConditionModal: false,
-        showPriceModal: false,
-        tempPrice: null,
-        priceError: '',
+  <script lang="ts">
+  import { defineComponent, ref, onMounted, computed } from 'vue';
+  import { useRoute } from 'vue-router';
+  import { db } from '../firebase'; // Assuming db is exported from firebase.js/ts
+  import { doc, getDoc, setDoc } from 'firebase/firestore';
+
+  export default defineComponent({
+    name: 'EditDetailProduk', // Renamed component name
+    setup() {
+      const route = useRoute();
+      const productId = route.params.productId; // Get product ID from route
+
+      // Reactive data properties, initialized potentially with default or empty values
+      const photos = ref([]);
+      const productName = ref('');
+      const description = ref('');
+      const category = ref('Pilih kategori');
+      const style = ref('Pilih style');
+      const condition = ref('Pilih kondisi');
+      const price = ref(null);
+      const showSuccessModal = ref(false);
+      const isLoading = ref(false);
+      const priceError = ref('');
+      const tempPrice = ref(null);
+
+      // Options for select fields (might need to be fetched or defined elsewhere for a real app)
+      const categories = [
+        'Fashion', 'Furniture', 'Elektronik', 'Aksesoris', 'Sepatu', 'Tas', 'Kosmetik',
+        'Perlengkapan Rumah', 'Kacamata', 'Buku', 'Lainnya'
+      ];
+      const conditions = [
+        'Baru', 'Bekas', 'Baru dengan tag', 'Bekas seperti baru'
+      ];
+      const styles = [
+        'Batik', 'Casual', 'Formal', 'Sporty', 'Vintage', 'Modern', 'Minimalis', 'Lainnya'
+      ];
+
+      onMounted(async () => {
+        if (productId) {
+          const productRef = doc(db, 'products', productId);
+          const productSnap = await getDoc(productRef);
+
+          if (productSnap.exists()) {
+            const productData = productSnap.data();
+            // Populate form fields with fetched data
+            productName.value = productData.name || '';
+            description.value = productData.description || '';
+            category.value = productData.category || 'Pilih kategori';
+            style.value = productData.style || 'Pilih style';
+            condition.value = productData.condition || 'Pilih kondisi';
+            price.value = productData.price !== undefined ? productData.price : null; // Handle price potentially being 0 or null
+            // Assuming photos are stored as an array of URLs in 'images'
+            photos.value = productData.images || [];
+
+            console.log('Fetched product data:', productData);
+          } else {
+            console.error('Product with ID not found:', productId);
+            // Optionally redirect to an error page or product list
+          }
+        } else {
+          console.error('No product ID provided in route parameters.');
+          // Optionally handle this case, maybe redirect or show a message
+        }
+      });
+
+      // Methods (adapted to use ref values)
+      const triggerFileInput = () => {
+        (document.querySelector('input[type="file"]') as HTMLInputElement).click();
       };
-    },
-    computed: {
-      hashtagCount() {
-        return (this.description.match(/#/g) || []).length;
-      },
-      descriptionWordCount() {
-        if (!this.description) return 0;
-        return this.description.trim().split(/\s+/).filter(Boolean).length;
-      },
-    },
-    methods: {
-      triggerFileInput() {
-        this.$refs.fileInput.click();
-      },
-      onPhotoChange(event) {
+
+      const onPhotoChange = (event) => {
         const files = event.target.files;
         if (!files.length) return;
         const maxPhotos = 4;
-        // Gabungkan foto lama dan baru, lalu ambil maksimal 4
-        const newFiles = Array.from(files).slice(0, maxPhotos - this.photos.length);
-        const newUrls = newFiles.map(file => URL.createObjectURL(file));
-        this.photos = [...this.photos, ...newUrls].slice(0, maxPhotos);
-        this.photo = this.photos[0] || null;
-      },
-      removePhoto(idx) {
-        this.photos.splice(idx, 1);
-        this.photo = this.photos[0] || null;
-      },
-      selectCategory(cat) {
-        this.category = cat;
-        this.showCategoryModal = false;
-      },
-      selectStyle(sty) {
-        this.style = sty;
-        this.showStyleModal = false;
-      },
-      selectCondition(cond) {
-        this.condition = cond;
-        this.showConditionModal = false;
-      },
-      openPriceModal() {
-        this.tempPrice = this.price !== null && this.price !== 'Masukkan harga' ? this.price : null;
-        this.priceError = '';
-        this.showPriceModal = true;
-      },
-      setPrice() {
-        if (this.tempPrice === null || this.tempPrice < 0) {
-          this.priceError = 'Harga harus lebih dari atau sama dengan 0';
+        const currentPhotosCount = photos.value.length;
+        const filesToAdd = Array.from(files).slice(0, maxPhotos - currentPhotosCount);
+
+        filesToAdd.forEach(file => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            photos.value.push(e.target.result as string); // Use result for data URL
+          };
+          reader.readAsDataURL(file);
+        });
+      };
+
+      const removePhoto = (idx) => {
+        photos.value.splice(idx, 1);
+      };
+
+      const selectCategory = (cat) => {
+        category.value = cat;
+        // Close modal logic needs to be implemented separately or handled by parent
+      };
+
+      const selectStyle = (sty) => {
+        style.value = sty;
+        // Close modal logic
+      };
+
+      const selectCondition = (cond) => {
+        condition.value = cond;
+        // Close modal logic
+      };
+
+      const openPriceModal = () => {
+        tempPrice.value = price.value !== null && price.value !== 'Masukkan harga' ? price.value : null;
+        priceError.value = '';
+        // Logic to show price modal
+      };
+
+      const setPrice = () => {
+        if (tempPrice.value === null || tempPrice.value < 0) {
+          priceError.value = 'Harga harus lebih dari atau sama dengan 0';
           return;
         }
-        this.price = this.tempPrice;
-        this.showPriceModal = false;
-        this.priceError = '';
-      },
-      submitForm() {
-        if (this.photos.length < 1) {
+        price.value = tempPrice.value;
+        // Logic to hide price modal
+        priceError.value = '';
+      };
+
+      const submitForm = async () => {
+        if (photos.value.length < 1) {
           alert('Minimal upload 1 foto');
           return;
         }
-        if (!this.productName || !this.description || this.price === null || this.price === 'Masukkan harga' || this.price < 0 || this.category === 'Pilih kategori' || this.style === 'Pilih style' || this.condition === 'Pilih kondisi') {
+        if (!productName.value || !description.value || price.value === null || price.value < 0 || category.value === 'Pilih kategori' || style.value === 'Pilih style' || condition.value === 'Pilih kondisi') {
           alert('Mohon lengkapi semua data dengan benar');
           return;
         }
-        this.isLoading = true;
-        setTimeout(() => {
-          this.isLoading = false;
-          this.showSuccessModal = true;
-        }, 1500);
-      },
-      closeForm() {
+
+        isLoading.value = true;
+
+        try {
+          const productRef = doc(db, 'products', productId as string);
+          const updatedData = {
+            name: productName.value,
+            description: description.value,
+            category: category.value,
+            style: style.value,
+            condition: condition.value,
+            price: price.value,
+          };
+          await setDoc(productRef, updatedData, { merge: true });
+          isLoading.value = false;
+          showSuccessModal.value = true; // Show success modal
+          console.log('Product updated successfully!');
+          // Optionally navigate back or to product details page after success
+          // router.push({ name: 'productDetail', params: { productId: productId } });
+        } catch (error) {
+          console.error('Error updating product:', error);
+          isLoading.value = false;
+          alert('Gagal menyimpan perubahan produk. Silakan coba lagi.');
+        }
+      };
+
+      const closeForm = () => {
         alert('Tutup form');
-      },
-      onDescriptionInput(e) {
+        // Implement navigation back or other close logic
+      };
+
+      const onDescriptionInput = (e) => {
         const words = e.target.value.trim().split(/\s+/).filter(Boolean);
         if (words.length > 500) {
-          this.description = words.slice(0, 500).join(' ');
+          description.value = words.slice(0, 500).join(' ');
         }
-      },
+      };
+
+      // Expose reactive properties and methods to the template
+      return {
+        photos,
+        productName,
+        description,
+        category,
+        style,
+        condition,
+        price,
+        showSuccessModal,
+        isLoading,
+        categories,
+        conditions,
+        styles,
+        showCategoryModal: ref(false), // Assuming modals are controlled within this component
+        showStyleModal: ref(false),
+        showConditionModal: ref(false),
+        showPriceModal: ref(false),
+        tempPrice,
+        priceError,
+        hashtagCount: computed(() => (description.value.match(/#/g) || []).length),
+        descriptionWordCount: computed(() => description.value.trim().split(/\s+/).filter(Boolean).length),
+        triggerFileInput,
+        onPhotoChange,
+        removePhoto,
+        selectCategory,
+        selectStyle,
+        selectCondition,
+        openPriceModal,
+        setPrice,
+        submitForm,
+        closeForm,
+        onDescriptionInput,
+      };
     },
-  };
+  });
   </script>
   
   <style scoped>
@@ -280,6 +373,7 @@
     justify-content: center;
     align-items: center;
     margin-top: 0;
+    padding-top: 80px;
   }
   
   .header {
@@ -294,12 +388,13 @@
     left: 0;
     right: 0;
     padding: 16px 24px;
-    background: #1b2a30;
+    background: #2c3e50;
     box-sizing: border-box;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     z-index: 10;
     justify-content: left;
     align-items: left;
+    padding-left: 260px;
   }
   
   .back-arrow {
@@ -323,7 +418,7 @@
   .form-wrapper {
     width: 100%;
     max-width: 1200px;
-    margin: 100px auto 20px auto;
+    margin: 20px auto;
     background: #fff;
     border-radius: 16px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.08);
