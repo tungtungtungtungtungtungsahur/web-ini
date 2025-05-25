@@ -1,11 +1,21 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import landing from '../views/landing.vue'
 import Signin from '../views/signin.vue'
 import Home from '../views/Home.vue'
-import sell from '../views/sell.vue'
-import editDetailProduk from '../views/editDetailProduk.vue'
 import { auth } from '../firebase'
 import { onAuthStateChanged } from 'firebase/auth'
+
+// Create a loading state
+let isLoading = true
+let isAuthenticated = false
+
+// Create a promise to track initial auth state
+const authReady = new Promise((resolve) => {
+  onAuthStateChanged(auth, (user) => {
+    isAuthenticated = !!user
+    isLoading = false
+    resolve(true)
+  })
+})
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -55,32 +65,26 @@ const router = createRouter({
   ],
 })
 
-let isAuthReady = false
-
-onAuthStateChanged(auth, () => {
-  isAuthReady = true
-})
-
+// Global navigation guard
 router.beforeEach(async (to, from, next) => {
   // Wait for auth to be ready
-  if (!isAuthReady) {
-    await new Promise((resolve) => {
-      const unsubscribe = onAuthStateChanged(auth, () => {
-        unsubscribe()
-        resolve(true)
-      })
-    })
+  if (isLoading) {
+    await authReady
   }
 
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
   const requiresGuest = to.matched.some((record) => record.meta.requiresGuest)
-  const isAuthenticated = auth.currentUser
 
+  // If the route requires auth and user is not authenticated
   if (requiresAuth && !isAuthenticated) {
     next('/signin')
-  } else if (requiresGuest && isAuthenticated) {
+  }
+  // If the route is for guests and user is authenticated
+  else if (requiresGuest && isAuthenticated) {
     next('/')
-  } else {
+  }
+  // Otherwise proceed
+  else {
     next()
   }
 })

@@ -11,19 +11,11 @@
       <div class="photo-upload">
         <div class="photo-list">
           <!-- Tombol tambah foto -->
-          <div
-            class="photo-preview add-photo"
-            v-if="photos.length < 4"
-            @click="triggerFileInput"
-          >
+          <div class="photo-preview add-photo" v-if="photos.length < 4" @click="triggerFileInput">
             <span>+</span>
           </div>
           <!-- Foto yang sudah diupload -->
-          <div
-            class="photo-preview uploaded-photo"
-            v-for="(url, idx) in photos"
-            :key="url"
-          >
+          <div class="photo-preview uploaded-photo" v-for="(url, idx) in photos" :key="url">
             <img :src="url" alt="Preview" />
             <button class="remove-photo" @click="removePhoto(idx)">×</button>
           </div>
@@ -35,7 +27,7 @@
           accept="image/*"
           @change="onPhotoChange"
           multiple
-          style="display:none"
+          style="display: none"
         />
       </div>
 
@@ -48,7 +40,11 @@
       <!-- Deskripsi -->
       <div class="form-group">
         <label>Deskripsi</label>
-        <textarea v-model="description" @input="onDescriptionInput" placeholder="Masukkan deskripsi terkait produk"></textarea>
+        <textarea
+          v-model="description"
+          @input="onDescriptionInput"
+          placeholder="Masukkan deskripsi terkait produk"
+        ></textarea>
         <div class="desc-info">
           <span>Hashtag: {{ hashtagCount }}</span>
           <span>{{ descriptionWordCount }}/500 kata</span>
@@ -70,7 +66,9 @@
       </div>
       <div class="form-group selector" @click="openPriceModal">
         <label>Harga</label>
-        <span>{{ price !== null && price !== 'Masukkan harga' ? 'Rp ' + price : 'Masukkan harga' }}</span>
+        <span>{{
+          price !== null && price !== 'Masukkan harga' ? 'Rp ' + price : 'Masukkan harga'
+        }}</span>
       </div>
 
       <!-- Submit Button -->
@@ -115,7 +113,9 @@
         <div class="modal-select">
           <h3>Pilih Kondisi</h3>
           <ul>
-            <li v-for="cond in conditions" :key="cond" @click="selectCondition(cond)">{{ cond }}</li>
+            <li v-for="cond in conditions" :key="cond" @click="selectCondition(cond)">
+              {{ cond }}
+            </li>
           </ul>
           <button class="modal-ok" @click="showConditionModal = false">Tutup</button>
         </div>
@@ -143,12 +143,15 @@
   </div>
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import { defineComponent } from 'vue'
+
+export default defineComponent({
+  name: 'SellProduct',
   data() {
     return {
-      photos: [], // untuk menyimpan banyak foto
-      photo: null, 
+      photos: [] as string[],
+      photo: null as string | null,
       productName: '',
       description: '',
       category: 'Pilih kategori',
@@ -158,102 +161,116 @@ export default {
       showSuccessModal: false,
       isLoading: false,
       categories: [
-        'Fashion', 'Furniture', 'Elektronik', 'Aksesoris', 'Sepatu', 'Tas', 'Kosmetik',
-        'Perlengkapan Rumah', 'Kacamata', 'Buku', 'Lainnya'
+        'Fashion',
+        'Furniture',
+        'Elektronik',
+        'Aksesoris',
+        'Sepatu',
+        'Tas',
+        'Kosmetik',
+        'Perlengkapan Rumah',
+        'Kacamata',
+        'Buku',
+        'Lainnya',
       ],
-      conditions: [
-        'Baru', 'Bekas', 'Baru dengan tag', 'Bekas seperti baru'
-      ],
-      styles: [
-        'Batik', 'Casual', 'Formal', 'Sporty', 'Vintage', 'Modern', 'Minimalis', 'Lainnya'
-      ],
+      conditions: ['Baru', 'Bekas', 'Baru dengan tag', 'Bekas seperti baru'],
+      styles: ['Batik', 'Casual', 'Formal', 'Sporty', 'Vintage', 'Modern', 'Minimalis', 'Lainnya'],
       showCategoryModal: false,
       showStyleModal: false,
       showConditionModal: false,
       showPriceModal: false,
       tempPrice: null,
       priceError: '',
-    };
+    }
   },
   computed: {
     hashtagCount() {
-      return (this.description.match(/#/g) || []).length;
+      return (this.description.match(/#/g) || []).length
     },
     descriptionWordCount() {
-      if (!this.description) return 0;
-      return this.description.trim().split(/\s+/).filter(Boolean).length;
+      if (!this.description) return 0
+      return this.description.trim().split(/\s+/).filter(Boolean).length
     },
   },
   methods: {
     triggerFileInput() {
-      this.$refs.fileInput.click();
+      ;(this.$refs.fileInput as HTMLInputElement).click()
     },
-    onPhotoChange(event) {
-      const files = event.target.files;
-      if (!files.length) return;
-      const maxPhotos = 4;
+    onPhotoChange(event: Event) {
+      const files = (event.target as HTMLInputElement).files
+      if (!files?.length) return
+      const maxPhotos = 4
       // Gabungkan foto lama dan baru, lalu ambil maksimal 4
-      const newFiles = Array.from(files).slice(0, maxPhotos - this.photos.length);
-      const newUrls = newFiles.map(file => URL.createObjectURL(file));
-      this.photos = [...this.photos, ...newUrls].slice(0, maxPhotos);
-      this.photo = this.photos[0] || null;
+      const newFiles = Array.from(files).slice(0, maxPhotos - this.photos.length)
+      const newUrls = newFiles.map((file) => URL.createObjectURL(file))
+      this.photos = [...this.photos, ...newUrls].slice(0, maxPhotos)
+      this.photo = this.photos[0] || null
     },
-    removePhoto(idx) {
-      this.photos.splice(idx, 1);
-      this.photo = this.photos[0] || null;
+    removePhoto(idx: number) {
+      this.photos.splice(idx, 1)
+      this.photo = this.photos[0] || null
     },
-    selectCategory(cat) {
-      this.category = cat;
-      this.showCategoryModal = false;
+    selectCategory(cat: string) {
+      this.category = cat
+      this.showCategoryModal = false
     },
-    selectStyle(sty) {
-      this.style = sty;
-      this.showStyleModal = false;
+    selectStyle(sty: string) {
+      this.style = sty
+      this.showStyleModal = false
     },
-    selectCondition(cond) {
-      this.condition = cond;
-      this.showConditionModal = false;
+    selectCondition(cond: string) {
+      this.condition = cond
+      this.showConditionModal = false
     },
     openPriceModal() {
-      this.tempPrice = this.price !== null && this.price !== 'Masukkan harga' ? this.price : null;
-      this.priceError = '';
-      this.showPriceModal = true;
+      this.tempPrice = this.price !== null && this.price !== 'Masukkan harga' ? this.price : null
+      this.priceError = ''
+      this.showPriceModal = true
     },
     setPrice() {
       if (this.tempPrice === null || this.tempPrice < 0) {
-        this.priceError = 'Harga harus lebih dari atau sama dengan 0';
-        return;
+        this.priceError = 'Harga harus lebih dari atau sama dengan 0'
+        return
       }
-      this.price = this.tempPrice;
-      this.showPriceModal = false;
-      this.priceError = '';
+      this.price = this.tempPrice
+      this.showPriceModal = false
+      this.priceError = ''
     },
     submitForm() {
       if (this.photos.length < 1) {
-        alert('Minimal upload 1 foto');
-        return;
+        alert('Minimal upload 1 foto')
+        return
       }
-      if (!this.productName || !this.description || this.price === null || this.price === 'Masukkan harga' || this.price < 0 || this.category === 'Pilih kategori' || this.style === 'Pilih style' || this.condition === 'Pilih kondisi') {
-        alert('Mohon lengkapi semua data dengan benar');
-        return;
+      if (
+        !this.productName ||
+        !this.description ||
+        this.price === null ||
+        this.price === 'Masukkan harga' ||
+        this.price < 0 ||
+        this.category === 'Pilih kategori' ||
+        this.style === 'Pilih style' ||
+        this.condition === 'Pilih kondisi'
+      ) {
+        alert('Mohon lengkapi semua data dengan benar')
+        return
       }
-      this.isLoading = true;
+      this.isLoading = true
       setTimeout(() => {
-        this.isLoading = false;
-        this.showSuccessModal = true;
-      }, 1500);
+        this.isLoading = false
+        this.showSuccessModal = true
+      }, 1500)
     },
     closeForm() {
-      alert('Tutup form');
+      alert('Tutup form')
     },
-    onDescriptionInput(e) {
-      const words = e.target.value.trim().split(/\s+/).filter(Boolean);
+    onDescriptionInput(e: Event) {
+      const words = (e.target as HTMLTextAreaElement).value.trim().split(/\s+/).filter(Boolean)
       if (words.length > 500) {
-        this.description = words.slice(0, 500).join(' ');
+        this.description = words.slice(0, 500).join(' ')
       }
     },
   },
-};
+})
 </script>
 
 <style scoped>
@@ -296,7 +313,7 @@ export default {
   padding: 16px 24px;
   background: #1b2a30;
   box-sizing: border-box;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   z-index: 10;
   justify-content: left;
   align-items: left;
@@ -326,7 +343,7 @@ export default {
   margin: 100px auto 20px auto;
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   padding: 24px;
   border: 1px solid #ccc;
   box-sizing: border-box;
@@ -341,7 +358,7 @@ export default {
 
 .form-wrapper:hover {
   transform: translateY(-5px);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
 }
 
 .photo-upload {
@@ -399,7 +416,7 @@ export default {
   position: absolute;
   top: 2px;
   right: 2px;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   color: #fff;
   border: none;
   border-radius: 50%;
@@ -538,20 +555,26 @@ export default {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .modal-overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.4);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 99;
 }
 
-.modal-success, .modal-select {
+.modal-success,
+.modal-select {
   background: white;
   padding: 20px 28px;
   border-radius: 16px;
@@ -592,7 +615,7 @@ export default {
   width: 90%;
   box-sizing: border-box;
   text-align: left;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
 }
 
 .modal-select h3 {
@@ -622,7 +645,9 @@ export default {
   font-size: 1rem;
   color: #222;
   background: transparent;
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
 }
 
 .modal-select li:last-child {
@@ -654,7 +679,7 @@ export default {
   width: 90vw;
   box-sizing: border-box;
   text-align: center;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
 }
 
 .input-underline {
@@ -708,7 +733,7 @@ export default {
   border-radius: 18px;
   padding: 8px 20px;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(124,77,255,0.04);
+  box-shadow: 0 2px 8px rgba(124, 77, 255, 0.04);
   transition: background 0.2s;
 }
 
