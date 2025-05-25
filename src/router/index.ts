@@ -80,6 +80,12 @@ const router = createRouter({
       component: () => import('../views/akun.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/bantuan',
+      name: 'bantuan',
+      component: () => import('../views/bantuan.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 
