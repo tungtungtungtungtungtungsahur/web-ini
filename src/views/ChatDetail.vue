@@ -1,7 +1,11 @@
 <template>
   <div class="chat-detail">
     <div class="header">
-      <button class="back-btn" @click="goBack">←</button>
+      <button class="back-button" @click="goBack">
+        <svg viewBox="0 0 24 24" width="24" height="24">
+          <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+        </svg>
+      </button>
       <div class="user-info">
         <img :src="receiver.avatarUrl || '/default-avatar.png'" alt="avatar" class="avatar" />
         <div class="user-details">
@@ -800,24 +804,35 @@ export default defineComponent({
   z-index: 10;
 }
 
-.back-btn {
+.back-button {
   background: none;
   border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
+  color: #000000;
   padding: 0.5rem;
-  margin-right: 1rem;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
+  margin-right: 1rem;
+  flex-shrink: 0;
 }
 
-.back-btn:hover {
-  background-color: #f0f0f0;
+.back-button:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  transform: scale(1.05);
+}
+
+.back-button:active {
+  transform: scale(0.95);
+}
+
+.back-button svg {
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 .user-info {
@@ -861,19 +876,22 @@ export default defineComponent({
 
 .product-info {
   display: flex;
-  padding: 0.75rem 1rem;
-  background: white;
+  padding: 1.25rem;
+  background: #898989;
   border-bottom: 1px solid #eee;
-  gap: 0.75rem;
+  gap: 1.25rem;
   align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .product-img {
-  width: 3rem;
-  height: 3rem;
-  border-radius: 0.5rem;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 1rem;
   object-fit: cover;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .product-details {
@@ -882,19 +900,23 @@ export default defineComponent({
 }
 
 .product-details h3 {
-  margin: 0 0 0.25rem 0;
-  font-size: 0.875rem;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.125rem;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: rgb(0, 0, 0);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .price {
   margin: 0;
-  font-size: 0.875rem;
-  color: #ff6b00;
-  font-weight: 600;
+  font-size: 1.125rem;
+  color: #000000;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  opacity: 0.9;
 }
 
 .messages {
@@ -930,8 +952,13 @@ export default defineComponent({
 }
 
 .message.sent .message-content {
-  background: #0084ff;
+  background: #333333;
   color: white;
+}
+
+.message.received .message-content {
+  background: white;
+  color: #000000;
 }
 
 .message-content a {
@@ -952,6 +979,10 @@ export default defineComponent({
 
 .message.sent .timestamp {
   color: rgba(255, 255, 255, 0.8);
+}
+
+.message.received .timestamp {
+  color: #999;
 }
 
 .input-area {
@@ -1422,10 +1453,14 @@ export default defineComponent({
     padding: 0.75rem;
   }
 
-  .back-btn {
-    font-size: 1.25rem;
+  .back-button {
     width: 2rem;
     height: 2rem;
+  }
+
+  .back-button svg {
+    width: 1.25rem;
+    height: 1.25rem;
   }
 
   .avatar {
@@ -1442,20 +1477,21 @@ export default defineComponent({
   }
 
   .product-info {
-    padding: 0.5rem 0.75rem;
+    padding: 1rem;
+    gap: 1rem;
   }
 
   .product-img {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 3.5rem;
+    height: 3.5rem;
   }
 
   .product-details h3 {
-    font-size: 0.75rem;
+    font-size: 1rem;
   }
 
   .price {
-    font-size: 0.75rem;
+    font-size: 1rem;
   }
 
   .messages {
@@ -1551,10 +1587,14 @@ export default defineComponent({
     padding: 0.5rem;
   }
 
-  .back-btn {
-    font-size: 1.125rem;
+  .back-button {
     width: 1.75rem;
     height: 1.75rem;
+  }
+
+  .back-button svg {
+    width: 1.125rem;
+    height: 1.125rem;
   }
 
   .avatar {
@@ -1562,9 +1602,13 @@ export default defineComponent({
     height: 1.75rem;
   }
 
+  .product-info {
+    padding: 0.875rem;
+  }
+
   .product-img {
-    width: 2rem;
-    height: 2rem;
+    width: 3rem;
+    height: 3rem;
   }
 
   .message-content {
