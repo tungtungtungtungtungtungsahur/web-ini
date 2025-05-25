@@ -2,11 +2,7 @@
   <div class="account-container">
     <div class="profile-section">
       <div class="avatar-wrapper" @click="goToEditProfile">
-        <img
-          src="https://placehold.co/100x100/pink/white?text=Profile"
-          alt="Profile"
-          class="avatar"
-        />
+        <img :src="photoURL" alt="Profile" class="avatar" />
         <span class="edit-icon">✏️</span>
       </div>
       <h2 class="username">{{ name }}</h2>
@@ -29,23 +25,40 @@
     </div>
 
     <div class="menu-list">
-      <div class="menu-item" @click="router.push('/katalogsaya')">🏬 Katalog Saya</div>
-      <div class="menu-item" @click="router.push('/BioDataToko')">📄 Biodata Toko</div>
-      <div class="menu-item" @click="router.push('/bantuan')">❓ Bantuan</div>
-      <div class="menu-item" @click="signOut">🚪 Keluar</div>
+      <div class="menu-item" @click="router.push('/katalogsaya')">
+        <span>🏬 Katalog Saya</span>
+        <span class="arrow">›</span>
+      </div>
+      <div class="menu-item" @click="router.push('/BioDataToko')">
+        <span>📄 Biodata Toko</span>
+        <span class="arrow">›</span>
+      </div>
+      <div class="menu-item" @click="router.push('/bantuan')">
+        <span>❓ Bantuan</span>
+        <span class="arrow">›</span>
+      </div>
+      <div class="menu-item" @click="signOut">
+        <span>🚪 Keluar</span>
+        <span class="arrow">›</span>
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
 import { useRouter } from 'vue-router'
-import { signOut } from 'firebase/auth'
-import { auth } from '../firebase'
+import { signOut, onAuthStateChanged } from 'firebase/auth'
+import { auth, db } from '../firebase'
+import { doc, getDoc } from 'firebase/firestore'
+import { ref, onMounted } from 'vue'
 
 export default {
   name: 'MyAccount',
   setup() {
     const router = useRouter()
+    const name = ref('')
+    const handle = ref('')
+    const photoURL = ref('https://placehold.co/100x100/pink/white?text=Profile')
 
     const goToEditProfile = () => {
       router.push('/editprofile')
@@ -60,12 +73,29 @@ export default {
       }
     }
 
+    onMounted(() => {
+      onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          const docRef = doc(db, 'users', user.uid)
+          const docSnap = await getDoc(docRef)
+
+          if (docSnap.exists()) {
+            const data = docSnap.data()
+            name.value = data.name || ''
+            handle.value = data.username || ''
+            photoURL.value = data.photoURL || photoURL.value
+          }
+        }
+      })
+    })
+
     return {
       router,
       goToEditProfile,
       signOut: handleSignOut,
-      name: 'luthfiah nazla',
-      handle: 'yayaaa',
+      name,
+      handle,
+      photoURL,
     }
   },
 }
@@ -143,12 +173,20 @@ export default {
 }
 
 .menu-item {
-  padding: 15px;
+  padding: 15px 20px;
   background: white;
   border-bottom: 1px solid #eee;
   font-size: 16px;
   cursor: pointer;
   transition: background 0.2s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.arrow {
+  font-size: 18px;
+  color: #999;
 }
 
 .menu-item:hover {
