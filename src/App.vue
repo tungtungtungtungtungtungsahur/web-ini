@@ -33,4 +33,58 @@ nav a {
 nav a.router-link-exact-active {
   color: #42b983;
 }
+
+.photo-list {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.photo-preview {
+  width: 80px;
+  height: 80px;
+  border: 2px dashed #d1d5db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fafbfc;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+}
+.photo-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: cover;
+}
+.add-photo {
+  color: #888;
+  font-size: 1.1rem;
+  border-style: dashed;
+}
+.uploaded-photo {
+  border-style: solid;
+  cursor: default;
+}
+.remove-photo {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: background 0.2s;
+}
+.remove-photo:hover {
+  background: #e11d48;
+}
 </style>
