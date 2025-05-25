@@ -1,7 +1,18 @@
 <template>
     <div class="edit-profile-container">
       <div class="header">
-        <button class="back-button" @click="router.back()">←</button>
+        <button class="back-button" @click="router.back()" aria-label="Kembali">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+            class="icon-back"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
         <h2>Edit Profil</h2>
       </div>
   
@@ -97,8 +108,22 @@
   .back-button {
     background: none;
     border: none;
-    font-size: 24px;
     cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+  }
+  
+  .icon-back {
+    width: 24px;
+    height: 24px;
+    color: #333;
+  }
+  
+  h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: bold;
   }
   
   .profile-pic-wrapper {
