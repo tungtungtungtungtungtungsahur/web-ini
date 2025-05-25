@@ -33,6 +33,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/ktp',
+      name: 'ktp',
+      component: () => import('../views/ktp.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/akunTokoSisiPenjual',
       name: 'akunTokoSisiPenjual',
       component: () => import('../views/akunTokoSisiPenjual.vue'),

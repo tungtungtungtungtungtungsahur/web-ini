@@ -145,9 +145,14 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
+import { useRouter } from 'vue-router'
 
 export default defineComponent({
   name: 'SellProduct',
+  setup() {
+    const router = useRouter()
+    return { router }
+  },
   data() {
     return {
       photos: [] as string[],
@@ -181,6 +186,13 @@ export default defineComponent({
       showPriceModal: false,
       tempPrice: null,
       priceError: '',
+    }
+  },
+  created() {
+    // Check if user has verified their KTP
+    const isKTPVerified = localStorage.getItem('ktpVerified')
+    if (!isKTPVerified) {
+      this.router.push('/ktp')
     }
   },
   computed: {
