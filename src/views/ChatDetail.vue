@@ -419,7 +419,7 @@ export default defineComponent({
             map.value = leafletMap
 
             // Add Google Maps layer with place names
-            L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            const googleLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
               attribution: '© Google',
               maxZoom: 20
             }).addTo(leafletMap)
@@ -432,10 +432,7 @@ export default defineComponent({
 
             // Add layer control
             const baseMaps = {
-              "Peta": L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-                attribution: '© Google',
-                maxZoom: 20
-              }),
+              "Peta": googleLayer,
               "Satelit": satelliteLayer
             }
             L.control.layers(baseMaps).addTo(leafletMap)
@@ -449,26 +446,15 @@ export default defineComponent({
             const markerIcon = L.divIcon({
               className: 'custom-marker',
               html: `
-                <div class="marker-pin"></div>
-                <div class="marker-pulse"></div>
-              `,
-              iconSize: [30, 30],
-              iconAnchor: [15, 15]
-            })
-
-            // Create current location marker icon
-            const currentLocationIcon = L.divIcon({
-              className: 'current-location-marker',
-              html: `
-                <div class="current-location-pin">
-                  <svg viewBox="0 0 24 24" width="24" height="24">
-                    <path fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                <div class="marker-pin">
+                  <svg viewBox="0 0 24 24" width="36" height="36">
+                    <path fill="#ff3b30" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                   </svg>
                 </div>
-                <div class="current-location-pulse"></div>
+                <div class="marker-pulse"></div>
               `,
-              iconSize: [40, 40],
-              iconAnchor: [20, 20]
+              iconSize: [64, 64],
+              iconAnchor: [32, 32]
             })
 
             // Add marker for selected location
@@ -478,12 +464,6 @@ export default defineComponent({
               autoPan: true
             }).addTo(leafletMap)
             marker.value = selectedMarker
-
-            // Add current location marker
-            const currentLocationMarker = L.marker([-6.2088, 106.8456], {
-              icon: currentLocationIcon,
-              zIndexOffset: 1000
-            }).addTo(leafletMap)
 
             // Add dragend handler for selected location marker
             selectedMarker.on('dragend', async (e: LeafletEvent) => {
@@ -496,27 +476,6 @@ export default defineComponent({
 
             // Get initial location
             centerOnUserLocation()
-
-            // Start watching user location
-            if (navigator.geolocation) {
-              navigator.geolocation.watchPosition(
-                (position) => {
-                  const { latitude, longitude } = position.coords
-                  currentLocationMarker.setLatLng([latitude, longitude])
-                  if (!selectedMarker.isDragging()) {
-                    leafletMap.setView([latitude, longitude], leafletMap.getZoom())
-                  }
-                },
-                (error) => {
-                  console.error('Error watching location:', error)
-                },
-                {
-                  enableHighAccuracy: true,
-                  timeout: 5000,
-                  maximumAge: 0
-                }
-              )
-            }
           } else {
             console.error("Map element #map not found!");
           }
@@ -1202,56 +1161,31 @@ export default defineComponent({
   cursor: not-allowed;
 }
 
-.custom-marker,
-.current-location-marker {
+.custom-marker {
   position: relative;
 }
 
-.marker-pin,
-.current-location-pin {
-  border-radius: 50%;
+.marker-pin {
+  width: 64px;
+  height: 64px;
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  border: 2px solid white;
-  box-shadow: 0 0 0 2px rgba(0, 132, 255, 0.3);
+  filter: drop-shadow(0 0 6px rgba(255, 59, 48, 0.5));
+  cursor: move;
 }
 
-.marker-pin {
-  width: 20px;
-  height: 20px;
-  background: #0084ff;
-}
-
-.current-location-pin {
-  width: 40px;
-  height: 40px;
-  background: #0084ff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.marker-pulse,
-.current-location-pulse {
-  position: absolute;
-  background: rgba(0, 132, 255, 0.2);
+.marker-pulse {
+  width: 96px;
+  height: 96px;
+  background: rgba(255, 59, 48, 0.2);
   border-radius: 50%;
+  position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
   animation: pulse 2s ease-out infinite;
-}
-
-.marker-pulse {
-  width: 40px;
-  height: 40px;
-}
-
-.current-location-pulse {
-  width: 60px;
-  height: 60px;
 }
 
 @keyframes pulse {
