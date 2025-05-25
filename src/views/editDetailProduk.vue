@@ -169,6 +169,7 @@
       const isLoading = ref(false);
       const priceError = ref('');
       const tempPrice = ref(null);
+      const showPriceModal = ref(false);
 
       // Options for select fields (might need to be fetched or defined elsewhere for a real app)
       const categories = [
@@ -255,9 +256,9 @@
       };
 
       const openPriceModal = () => {
-        tempPrice.value = price.value !== null && price.value !== 'Masukkan harga' ? price.value : null;
+        tempPrice.value = price.value;
+        showPriceModal.value = true;
         priceError.value = '';
-        // Logic to show price modal
       };
 
       const setPrice = () => {
@@ -266,7 +267,7 @@
           return;
         }
         price.value = tempPrice.value;
-        // Logic to hide price modal
+        showPriceModal.value = false;
         priceError.value = '';
       };
 
@@ -384,7 +385,7 @@
         showCategoryModal: ref(false),
         showStyleModal: ref(false),
         showConditionModal: ref(false),
-        showPriceModal: ref(false),
+        showPriceModal,
         tempPrice,
         priceError,
         hashtagCount: computed(() => (description.value.match(/#/g) || []).length),
