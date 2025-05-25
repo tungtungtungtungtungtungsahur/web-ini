@@ -1,37 +1,27 @@
 <template>
-  <div class="sidebar-container">
-    <!-- Sidebar -->
-    <div :class="['sidebar', { 'sidebar-open': isOpen }]">
-      <div class="sidebar-header">
-        <h3>Menu</h3>
-        <button class="toggle-btn" @click="toggleSidebar">
-          <i :class="isOpen ? 'fas fa-chevron-left' : 'fas fa-chevron-right'"></i>
-        </button>
-      </div>
-      <div class="sidebar-items">
-        <div
-          v-for="(item, index) in navigationItems"
-          :key="index"
-          :class="['sidebar-item', { active: selectedIndex === index }]"
-          @click="handleItemClick(index)"
-        >
-          <div class="icon-wrapper">
-            <i :class="selectedIndex === index ? item.activeIcon : item.icon"></i>
-            <span v-if="item.label === 'Keranjang' && cartCount > 0" class="badge">
-              {{ cartCount }}
-            </span>
-          </div>
-          <span class="label" v-show="isOpen">{{ item.label }}</span>
+  <div :class="['sidebar', { 'sidebar-open': isOpen }]">
+    <div class="sidebar-header">
+      <h3>Menu</h3>
+      <button class="toggle-btn" @click="toggleSidebar">
+        <i :class="isOpen ? 'fas fa-chevron-left' : 'fas fa-chevron-right'"></i>
+      </button>
+    </div>
+    <div class="sidebar-items">
+      <div
+        v-for="(item, index) in navigationItems"
+        :key="index"
+        :class="['sidebar-item', { active: selectedIndex === index }]"
+        @click="handleItemClick(index)"
+      >
+        <div class="icon-wrapper">
+          <i :class="selectedIndex === index ? item.activeIcon : item.icon"></i>
+          <span v-if="item.label === 'Keranjang' && cartCount > 0" class="badge">
+            {{ cartCount }}
+          </span>
         </div>
+        <span class="label" v-show="isOpen">{{ item.label }}</span>
       </div>
     </div>
-
-    <!-- Overlay -->
-    <div
-      v-if="isOpen"
-      class="sidebar-overlay"
-      @click="toggleSidebar"
-    ></div>
   </div>
 </template>
 
@@ -48,7 +38,7 @@ defineOptions({
 const router = useRouter()
 const selectedIndex = ref(0)
 const cartCount = ref(0)
-const isOpen = ref(false)
+const isOpen = ref(true) // Awalnya terbuka
 
 const navigationItems = [
   {
@@ -86,14 +76,12 @@ const navigationItems = [
 const handleItemClick = (index: number) => {
   selectedIndex.value = index
   router.push(navigationItems[index].route)
-  isOpen.value = false // Close sidebar after navigation
 }
 
 const toggleSidebar = () => {
   isOpen.value = !isOpen.value
 }
 
-// Subscribe to cart items count
 onMounted(() => {
   const cartRef = collection(db, 'cart')
   onSnapshot(cartRef, (snapshot) => {
@@ -103,22 +91,14 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.sidebar-container {
-  position: relative;
-}
-
 .sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
   width: 60px;
-  height: 100vh;
   background-color: white;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
   transition: width 0.3s ease;
   display: flex;
   flex-direction: column;
+  height: 100vh;
 }
 
 .sidebar-open {
@@ -218,15 +198,5 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 2px;
-}
-
-.sidebar-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 999;
 }
 </style>
