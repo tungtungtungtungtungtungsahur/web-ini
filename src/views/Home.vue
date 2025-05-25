@@ -95,10 +95,11 @@ const products = ref<Product[]>([])
 
 // Categories data
 const categories = ref<Category[]>([
+  { icon: 'fas fa-th-large', label: 'Semua' },
   { icon: 'fas fa-tshirt', label: 'Fashion' },
   { icon: 'fas fa-couch', label: 'Furniture' },
   { icon: 'fas fa-plug', label: 'Elektronik' },
-  { icon: 'fas fa-watch', label: 'Aksesoris' },
+  { icon: 'fas fa-gem', label: 'Aksesoris' },
   { icon: 'fas fa-running', label: 'Sepatu' },
   { icon: 'fas fa-shopping-bag', label: 'Tas' },
   { icon: 'fas fa-paint-brush', label: 'Kosmetik' },

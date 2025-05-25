@@ -17,7 +17,7 @@
     </div>
     <div class="app-bar-right">
       <div class="profile-section" @click="goToProfile">
-        <img :src="userPhotoURL" alt="Profile" class="avatar" />
+        <img :src="userPhotoURL" alt="Profile" class="avatar" @error="userPhotoURL = 'https://via.placeholder.com/40'" />
         <span class="greeting">Hi, {{ userName }}</span>
       </div>
       <button class="icon-btn" @click="goToMessages">
@@ -34,19 +34,30 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { auth } from '../firebase'
+import { auth, db } from '../firebase'
+import { doc, getDoc } from 'firebase/firestore'
 
 const router = useRouter()
 const searchQuery = ref('')
 
-const userName = ref('Dimas')
+const userName = ref('User')
 const userPhotoURL = ref('https://via.placeholder.com/40')
 
-onMounted(() => {
+onMounted(async () => {
   const user = auth.currentUser
   if (user) {
     userName.value = user.displayName || 'User'
     userPhotoURL.value = user.photoURL || 'https://via.placeholder.com/40'
+
+    // Fallback: Try to get more info from Firestore if needed
+    if (!user.displayName || !user.photoURL) {
+      const userDoc = await getDoc(doc(db, 'users', user.uid))
+      if (userDoc.exists()) {
+        const data = userDoc.data()
+        if (data.name) userName.value = data.name
+        if (data.photoURL) userPhotoURL.value = data.photoURL
+      }
+    }
   }
 })
 
@@ -71,7 +82,6 @@ const goToCart = () => {
 const goToSell = () => {
   router.push('/sell')
 }
-
 const goHome = () => {
   router.push('/')
 }
