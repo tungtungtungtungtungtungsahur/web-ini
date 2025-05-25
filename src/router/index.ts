@@ -95,9 +95,8 @@ const router = createRouter({
   ],
 })
 
-// Global navigation guard
 router.beforeEach(async (to, from, next) => {
-  // Wait for auth to be ready
+ 
   if (isLoading) {
     await authReady
   }
@@ -113,7 +112,7 @@ router.beforeEach(async (to, from, next) => {
   else if (requiresGuest && isAuthenticated) {
     next('/')
   }
-  // Otherwise proceed
+
   else {
     next()
   }

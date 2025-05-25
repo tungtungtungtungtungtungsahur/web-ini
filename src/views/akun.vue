@@ -174,22 +174,25 @@ export default {
 
 .menu-item {
   padding: 15px 20px;
-  background: white;
-  border-bottom: 1px solid #eee;
+  background: #1a2b35;
+  border-bottom: 1px solid black;
   font-size: 16px;
+  color: white;
   cursor: pointer;
   transition: background 0.2s ease;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-radius: 8px;
+  margin-bottom: 10px;
 }
 
 .arrow {
   font-size: 18px;
-  color: #999;
+  color: putih;
 }
 
 .menu-item:hover {
-  background: #f0f0f0;
+  background: #cce0ff; /* warna hover lebih gelap */
 }
 </style>
