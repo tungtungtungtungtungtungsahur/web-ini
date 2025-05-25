@@ -23,27 +23,13 @@
         />
       </div>
 
-      <!-- NIK Input -->
-      <div class="form-group">
-        <label>NIK</label>
-        <input
-          v-model="nik"
-          type="text"
-          placeholder="Masukkan NIK sesuai KTP"
-          maxlength="16"
-          @input="validateNIK"
-        />
-        <span v-if="nikError" class="error-text">{{ nikError }}</span>
-      </div>
-
-      <!-- Nama Input -->
-      <div class="form-group">
-        <label>Nama Lengkap</label>
-        <input v-model="fullName" type="text" placeholder="Masukkan nama lengkap sesuai KTP" />
+      <!-- Error Message -->
+      <div v-if="verificationError" class="error-message">
+        {{ verificationError }}
       </div>
 
       <!-- Submit Button -->
-      <button class="submit-btn" @click="submitVerification" :disabled="isLoading || !isFormValid">
+      <button class="submit-btn" @click="submitVerification" :disabled="isLoading || !ktpPhoto">
         <span v-if="isLoading" class="spinner"></span>
         <span v-else>Verifikasi</span>
       </button>
@@ -63,6 +49,12 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
+import Tesseract from 'tesseract.js'
+
+interface TesseractProgress {
+  status: string
+  progress: number
+}
 
 export default defineComponent({
   name: 'KTPVerification',
@@ -73,22 +65,12 @@ export default defineComponent({
   data() {
     return {
       ktpPhoto: null as string | null,
-      nik: '',
-      fullName: '',
-      nikError: '',
       isLoading: false,
       showSuccessModal: false,
+      verificationError: '',
     }
   },
-  computed: {
-    isFormValid(): boolean {
-      return !!(this.ktpPhoto && this.nik && this.fullName && !this.nikError)
-    },
-  },
   methods: {
-    goBack() {
-      this.router.back()
-    },
     triggerFileInput() {
       ;(this.$refs.fileInput as HTMLInputElement).click()
     },
@@ -98,38 +80,59 @@ export default defineComponent({
 
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        alert('Mohon upload file gambar')
+        this.verificationError = 'Mohon upload file gambar'
         return
       }
 
       // Create preview
       this.ktpPhoto = URL.createObjectURL(file)
-    },
-    validateNIK() {
-      // Remove non-numeric characters
-      this.nik = this.nik.replace(/\D/g, '')
-
-      if (this.nik.length > 0 && this.nik.length !== 16) {
-        this.nikError = 'NIK harus 16 digit'
-      } else {
-        this.nikError = ''
-      }
+      this.verificationError = ''
     },
     async submitVerification() {
-      if (!this.isFormValid) return
+      if (!this.ktpPhoto) return
 
       this.isLoading = true
+      this.verificationError = ''
 
       try {
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1500))
+        const fileInput = this.$refs.fileInput as HTMLInputElement
+        const file = fileInput.files?.[0]
 
-        // Store verification status in localStorage
-        localStorage.setItem('ktpVerified', 'true')
+        if (!file) {
+          throw new Error('No file selected')
+        }
 
-        this.showSuccessModal = true
+        // Use Tesseract.js to recognize text
+        const result = await Tesseract.recognize(
+          file,
+          'ind', // Indonesian language
+          {
+            logger: (m: TesseractProgress) => {
+              if (m.status === 'recognizing text') {
+                this.verificationError = 'Memproses gambar...'
+              }
+            },
+          },
+        )
+
+        // Check for common KTP patterns
+        const text = result.data.text.toLowerCase()
+        const requiredPatterns = ['nik', 'nama', 'tempat/tgl lahir', 'alamat']
+        const foundPatterns = requiredPatterns.filter((pattern) => text.includes(pattern))
+
+        // Calculate confidence score
+        const confidenceScore = foundPatterns.length / requiredPatterns.length
+
+        if (confidenceScore >= 0.75) {
+          // Store verification status in localStorage
+          localStorage.setItem('ktpVerified', 'true')
+          this.showSuccessModal = true
+        } else {
+          this.verificationError = 'Format KTP tidak valid'
+        }
       } catch (error) {
-        alert('Terjadi kesalahan. Silakan coba lagi.')
+        console.error('Verification error:', error)
+        this.verificationError = 'Terjadi kesalahan. Silakan coba lagi.'
       } finally {
         this.isLoading = false
       }
@@ -210,31 +213,11 @@ export default defineComponent({
   margin-bottom: 8px;
 }
 
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: #222;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
-  box-sizing: border-box;
-}
-
-.error-text {
+.error-message {
   color: #e11d48;
+  text-align: center;
+  margin-bottom: 16px;
   font-size: 0.9rem;
-  margin-top: 4px;
-  display: block;
 }
 
 .submit-btn {
