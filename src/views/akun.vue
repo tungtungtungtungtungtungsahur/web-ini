@@ -25,7 +25,7 @@
     </div>
 
     <div class="menu-list">
-      <div class="menu-item" @click="router.push('/katalogsaya')">
+      <div class="menu-item" @click="router.push('/akunTokoSisiPenjual')">
         <span>🏬 Katalog Saya</span>
         <span class="arrow">›</span>
       </div>
