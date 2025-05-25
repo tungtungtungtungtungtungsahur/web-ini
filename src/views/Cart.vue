@@ -10,49 +10,115 @@
 
       <!-- Tab Bar -->
       <div class="tab-bar">
-        <span :class="{ active: activeTab === 'proses' }" @click="activeTab = 'proses'"
-          >Proses</span
-        >
-        <span :class="{ active: activeTab === 'selesai' }" @click="activeTab = 'selesai'"
-          >Selesai</span
-        >
+        <span :class="{ active: activeTab === 'proses' }" @click="activeTab = 'proses'">Proses</span>
+        <span :class="{ active: activeTab === 'selesai' }" @click="goToCartDone">Selesai</span>
       </div>
 
-      <!-- Cart Group -->
-      <div class="cart-group" v-if="activeTab === 'proses'">
-        <div class="seller-info">
-          <img class="seller-avatar" src="https://via.placeholder.com/40" alt="avatar" />
-          <span class="seller-name">jedac jedug</span>
-        </div>
+      <!-- Loading State -->
+      <div v-if="loading" class="loading">
+        Loading...
+      </div>
 
-        <div class="product-card">
-          <img class="product-img" src="https://via.placeholder.com/100" alt="produk" />
-          <div class="product-details">
-            <p class="product-title">buku</p>
-            <p class="product-price">Rp 999666</p>
+      <!-- Error State -->
+      <div v-else-if="error" class="error">
+        {{ error }}
+      </div>
+
+      <!-- Empty State -->
+      <div v-else-if="!groupedItems.length" class="empty">
+        Keranjang kosong
+      </div>
+
+      <!-- Cart Groups -->
+      <template v-else>
+        <div v-for="(items, sellerUsername) in groupedItems" :key="sellerUsername" class="cart-group">
+          <div class="seller-info">
+            <img
+              class="seller-avatar"
+              :src="items[0].seller?.avatarUrl || 'https://via.placeholder.com/40'"
+              alt="avatar"
+            />
+            <span class="seller-name">{{ items[0].seller?.name || 'Seller' }}</span>
           </div>
-          <button v-if="isEdit" class="delete-btn">×</button>
-        </div>
 
-        <div class="actions">
-          <button class="chat-btn">Chat penjual</button>
-          <button class="selesai-btn">Selesai</button>
-        </div>
-      </div>
+          <div v-for="item in items" :key="item.id" class="product-card">
+            <img
+              class="product-img"
+              :src="item.images?.[0] || 'https://via.placeholder.com/100'"
+              alt="produk"
+            />
+            <div class="product-details">
+              <p class="product-title">{{ item.name }}</p>
+              <p class="product-price">Rp {{ item.price }}</p>
+            </div>
+            <button v-if="isEdit" class="delete-btn" @click="removeItem(item.id)">×</button>
+          </div>
 
-      <!-- Belum ada data -->
-      <div v-else class="empty">Belum ada item selesai.</div>
+          <div class="actions">
+            <button class="chat-btn" @click="openChat(items[0])">Chat penjual</button>
+            <button class="selesai-btn" @click="completeOrder(items)">Selesai</button>
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-export default {
+import { defineComponent } from 'vue'
+import {
+  collection,
+  doc,
+  getDocs,
+  deleteDoc,
+  addDoc,
+  query,
+  where,
+  getDoc,
+  serverTimestamp,
+  writeBatch,
+  increment
+} from 'firebase/firestore'
+import { getAuth } from 'firebase/auth'
+import { db } from '@/firebase'
+
+interface CartItem {
+  id: string
+  productId: string
+  name: string
+  price: number
+  images: string[]
+  sellerId: string
+  sellerUsername: string
+  seller?: {
+    name: string
+    avatarUrl: string
+  }
+  createdAt: Date
+}
+
+export default defineComponent({
   name: 'CartPage',
   data() {
     return {
       activeTab: 'proses',
       isEdit: false,
+      loading: true,
+      error: null as string | null,
+      cartItems: [] as CartItem[]
+    }
+  },
+  computed: {
+    groupedItems() {
+      const grouped: { [key: string]: CartItem[] } = {}
+      this.cartItems.forEach(item => {
+        const sellerUsername = item.sellerUsername || 'unknown'
+        if (!grouped[sellerUsername]) {
+          grouped[sellerUsername] = []
+        }
+        grouped[sellerUsername].push(item)
+      })
+      return grouped
     }
   },
   methods: {
@@ -62,13 +128,120 @@ export default {
     toggleEdit() {
       this.isEdit = !this.isEdit
     },
+    async fetchCartItems() {
+      try {
+        this.loading = true
+        this.error = null
+
+        const auth = getAuth()
+        const user = auth.currentUser
+
+        if (!user) {
+          this.cartItems = []
+          return
+        }
+
+        const cartRef = collection(db, 'carts', user.uid, 'items')
+        const cartSnapshot = await getDocs(cartRef)
+
+        this.cartItems = cartSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as CartItem))
+      } catch (err) {
+        this.error = 'Failed to load cart items'
+        console.error(err)
+      } finally {
+        this.loading = false
+      }
+    },
+    async removeItem(itemId: string) {
+      try {
+        const auth = getAuth()
+        const user = auth.currentUser
+
+        if (!user) return
+
+        const cartItemRef = doc(db, 'carts', user.uid, 'items', itemId)
+        await deleteDoc(cartItemRef)
+        await this.fetchCartItems()
+      } catch (err) {
+        console.error('Failed to remove item:', err)
+      }
+    },
+    async completeOrder(items: CartItem[]) {
+      try {
+        const auth = getAuth()
+        const user = auth.currentUser
+
+        if (!user) return
+
+        const batch = writeBatch(db)
+        const cartDoneRef = collection(db, 'users', user.uid, 'cart_done')
+
+        for (const item of items) {
+          // Add to cart_done
+          const newDoneRef = doc(cartDoneRef)
+          batch.set(newDoneRef, {
+            ...item,
+            completedAt: serverTimestamp()
+          })
+
+          // Remove from cart
+          const cartItemRef = doc(db, 'carts', user.uid, 'items', item.id)
+          batch.delete(cartItemRef)
+
+          // Update seller's totalProductSold
+          if (item.sellerId) {
+            const sellerRef = doc(db, 'users', item.sellerId)
+            batch.update(sellerRef, {
+              totalProductSold: increment(1)
+            })
+          }
+        }
+
+        await batch.commit()
+        // Navigate to CartDone page after successful completion
+        this.$router.push({ name: 'CartDone' })
+      } catch (err) {
+        console.error('Failed to complete order:', err)
+        this.error = 'Gagal menyelesaikan pesanan'
+      }
+    },
+    openChat(item: CartItem) {
+      this.$router.push({
+        name: 'ChatDetail',
+        params: {
+          receiverId: item.sellerId
+        },
+        query: {
+          name: item.seller?.name,
+          avatarUrl: item.seller?.avatarUrl,
+          productInfo: JSON.stringify({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            images: item.images,
+            sellerName: item.seller?.name,
+            sellerUsername: item.sellerUsername,
+            sellerId: item.sellerId
+          })
+        }
+      })
+    },
+    goToCartDone() {
+      this.$router.push({ name: 'CartDone' })
+    }
   },
-}
+  async created() {
+    await this.fetchCartItems()
+  }
+})
 </script>
 
 <style scoped>
 .cart-page {
-  background-color: #fff0fa;
+  background-color: #f5f5f5;
   min-height: 100vh;
   padding: 32px 0;
   font-family: sans-serif;
@@ -76,9 +249,13 @@ export default {
 
 .cart-container {
   max-width: 1000px;
-  margin: 0 auto;
-  background: none;
-  padding: 0 24px;
+  margin: 32px auto;
+  padding: 0 24px 32px 24px;
+  width: 100%;
+  box-sizing: border-box;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
 }
 
 .header {
@@ -86,7 +263,9 @@ export default {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 24px;
-  padding: 0;
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  padding: 24px 0 0 0;
 }
 
 .back-btn {
@@ -110,8 +289,9 @@ export default {
   justify-content: flex-start;
   gap: 48px;
   margin-bottom: 32px;
-  border-bottom: 2px solid #ccc;
+  border-bottom: 2px solid #eee;
   padding: 0;
+  background: #fff;
 }
 
 .tab-bar span {
@@ -143,6 +323,7 @@ export default {
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
   margin: 0;
 }
@@ -258,5 +439,15 @@ export default {
   color: #aaa;
   margin-top: 60px;
   font-size: 18px;
+}
+
+.loading, .error {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.error {
+  color: #ff4444;
 }
 </style>

@@ -98,11 +98,16 @@ const router = createRouter({
       component: () => import('../views/editProfile.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/cart-done',
+      name: 'CartDone',
+      component:() => import('../views/CartDone.vue'),
+    }
   ],
 })
 
 router.beforeEach(async (to, from, next) => {
- 
+
   if (isLoading) {
     await authReady
   }
