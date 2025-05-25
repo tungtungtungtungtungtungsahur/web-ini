@@ -32,7 +32,7 @@
   }
   
   .logo {
-    width: 100px;
+    width: 140px;
     height: auto;
     margin-bottom: 32px;
   }
