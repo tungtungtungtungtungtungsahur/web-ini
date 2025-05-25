@@ -44,7 +44,14 @@
             <div class="product-details">
               <p class="product-title">{{ item.name }}</p>
               <p class="product-price">Rp {{ item.price }}</p>
-              <button v-if="isEdit" @click="removeItem(item.id)">×</button>
+              <div class="hapus-btn-wrapper" v-if="isEdit">
+                <button
+                  class="hapus-btn"
+                  @click="removeItem(item.id)"
+                >
+                  Hapus
+                </button>
+              </div>
             </div>
           </div>
 
@@ -401,20 +408,28 @@ h2 {
   font-size: 16px;
 }
 
-.delete-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: #ffdddd;
-  border: none;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  font-size: 20px;
-  cursor: pointer;
+.hapus-btn-wrapper {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.hapus-btn {
+  background: #ff4444;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: auto;
+  min-width: 80px;
+}
+
+.hapus-btn:hover {
+  background: #d32f2f;
 }
 
 .actions {
