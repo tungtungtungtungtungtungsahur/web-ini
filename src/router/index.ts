@@ -33,6 +33,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/BioDataToko',
+      name: 'BioDataToko',
+      component: () => import('../views/BioDataToko.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/editDetailProduk',
       name: 'editDetailProduk',
       component: () => import('../views/editDetailProduk.vue'),
