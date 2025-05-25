@@ -352,7 +352,7 @@
     margin: 0 0 16px;
     font-size: 20px;
     font-weight: bold;
-    color: #ff6b00;
+    color: #e53935;
   }
 
   .seller-info {

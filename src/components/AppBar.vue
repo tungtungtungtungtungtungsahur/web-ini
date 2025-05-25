@@ -2,7 +2,7 @@
   <div class="app-bar">
     <div class="app-bar-left" @click="goHome" style="cursor:pointer">
       <img src="/barbek2.png" alt="Logo" class="logo" />
-      <h1 class="app-name">MarketPlace</h1>
+      <h1 class="app-name">barbek</h1>
     </div>
     <div class="search-container">
       <input

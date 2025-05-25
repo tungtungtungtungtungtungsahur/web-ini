@@ -1,15 +1,10 @@
 <template>
     <div class="ktp-verification-container">
-      <div class="header">
-        <span class="back-arrow" @click="goBack">&leftarrow;</span>
-        <h2>Verifikasi KTP</h2>
-      </div>
-  
       <div class="form-wrapper">
         <div class="info-text">
           <p>Untuk menjual produk, Anda perlu memverifikasi KTP terlebih dahulu.</p>
         </div>
-  
+
         <!-- Upload KTP -->
         <div class="photo-upload">
           <div class="photo-preview" :class="{ 'has-photo': ktpPhoto }">
@@ -27,36 +22,36 @@
             style="display: none"
           />
         </div>
-  
+
         <!-- NIK Input -->
         <div class="form-group">
           <label>NIK</label>
-          <input 
-            v-model="nik" 
-            type="text" 
+          <input
+            v-model="nik"
+            type="text"
             placeholder="Masukkan NIK sesuai KTP"
             maxlength="16"
             @input="validateNIK"
           />
           <span v-if="nikError" class="error-text">{{ nikError }}</span>
         </div>
-  
+
         <!-- Nama Input -->
         <div class="form-group">
           <label>Nama Lengkap</label>
-          <input 
-            v-model="fullName" 
-            type="text" 
+          <input
+            v-model="fullName"
+            type="text"
             placeholder="Masukkan nama lengkap sesuai KTP"
           />
         </div>
-  
+
         <!-- Submit Button -->
         <button class="submit-btn" @click="submitVerification" :disabled="isLoading || !isFormValid">
           <span v-if="isLoading" class="spinner"></span>
           <span v-else>Verifikasi</span>
         </button>
-  
+
         <!-- Modal Sukses -->
         <div v-if="showSuccessModal" class="modal-overlay">
           <div class="modal-success">
@@ -68,11 +63,11 @@
       </div>
     </div>
   </template>
-  
+
   <script lang="ts">
   import { defineComponent } from 'vue'
   import { useRouter } from 'vue-router'
-  
+
   export default defineComponent({
     name: 'KTPVerification',
     setup() {
@@ -109,20 +104,20 @@
       onKTPChange(event: Event) {
         const file = (event.target as HTMLInputElement).files?.[0]
         if (!file) return
-  
+
         // Validate file type
         if (!file.type.startsWith('image/')) {
           alert('Mohon upload file gambar')
           return
         }
-  
+
         // Create preview
         this.ktpPhoto = URL.createObjectURL(file)
       },
       validateNIK() {
         // Remove non-numeric characters
         this.nik = this.nik.replace(/\D/g, '')
-  
+
         if (this.nik.length > 0 && this.nik.length !== 16) {
           this.nikError = 'NIK harus 16 digit'
         } else {
@@ -131,16 +126,16 @@
       },
       async submitVerification() {
         if (!this.isFormValid) return
-  
+
         this.isLoading = true
-  
+
         try {
           // Simulate API call
           await new Promise(resolve => setTimeout(resolve, 1500))
-          
+
           // Store verification status in localStorage
           localStorage.setItem('ktpVerified', 'true')
-          
+
           this.showSuccessModal = true
         } catch (error) {
           alert('Terjadi kesalahan. Silakan coba lagi.')
@@ -155,67 +150,40 @@
     }
   })
   </script>
-  
+
   <style scoped>
   .ktp-verification-container {
-    width: 100vw;
-    height: 100vh;
-    background: #f6f2fa;
-    padding: 0;
+    width: 100%;
+    min-height: 100vh;
+    background: #f5f5f5;
+    padding: 32px 0;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 1;
-  }
-  
-  .header {
-    width: 100%;
-    display: flex;
     align-items: center;
-    padding: 16px 24px;
-    background: #1b2a30;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    z-index: 10;
+    overflow-y: auto;
   }
-  
-  .back-arrow {
-    font-size: 28px;
-    cursor: pointer;
-    color: #fff;
-    margin-right: 12px;
-  }
-  
-  .header h2 {
-    font-size: 1.4rem;
-    font-weight: 500;
-    color: #fff;
-    margin: 0;
-  }
-  
+
   .form-wrapper {
     width: 100%;
-    max-width: 600px;
-    margin: 100px auto 20px;
+    max-width: 1200px;
+    margin: 48px auto 32px auto;
     background: #fff;
     border-radius: 16px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-    padding: 24px;
+    padding: 48px 48px 40px 48px;
     box-sizing: border-box;
   }
-  
+
   .info-text {
     text-align: center;
     margin-bottom: 24px;
     color: #666;
   }
-  
+
   .photo-upload {
     margin-bottom: 24px;
   }
-  
+
   .photo-preview {
     width: 100%;
     height: 200px;
@@ -228,40 +196,40 @@
     overflow: hidden;
     cursor: pointer;
   }
-  
+
   .photo-preview.has-photo {
     border-style: solid;
     cursor: default;
   }
-  
+
   .photo-preview img {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
   }
-  
+
   .upload-placeholder {
     text-align: center;
     color: #888;
   }
-  
+
   .upload-placeholder span {
     font-size: 36px;
     display: block;
     margin-bottom: 8px;
   }
-  
+
   .form-group {
     margin-bottom: 20px;
   }
-  
+
   .form-group label {
     display: block;
     font-weight: 600;
     margin-bottom: 8px;
     color: #222;
   }
-  
+
   .form-group input {
     width: 100%;
     padding: 12px;
@@ -270,14 +238,14 @@
     font-size: 1rem;
     box-sizing: border-box;
   }
-  
+
   .error-text {
     color: #e11d48;
     font-size: 0.9rem;
     margin-top: 4px;
     display: block;
   }
-  
+
   .submit-btn {
     width: 100%;
     background-color: #3b82f6;
@@ -290,12 +258,12 @@
     padding: 12px;
     transition: background-color 0.3s;
   }
-  
+
   .submit-btn:disabled {
     background-color: #a5b4fc;
     cursor: not-allowed;
   }
-  
+
   .spinner {
     border: 3px solid transparent;
     border-top: 3px solid white;
@@ -306,13 +274,13 @@
     margin: 0 auto;
     display: block;
   }
-  
+
   @keyframes spin {
     to {
       transform: rotate(360deg);
     }
   }
-  
+
   .modal-overlay {
     position: fixed;
     top: 0;
@@ -325,7 +293,7 @@
     justify-content: center;
     z-index: 99;
   }
-  
+
   .modal-success {
     background: white;
     padding: 24px;
@@ -334,18 +302,18 @@
     width: 90%;
     text-align: center;
   }
-  
+
   .modal-success h2 {
     margin: 0 0 12px;
     font-size: 1.4rem;
     color: #22c55e;
   }
-  
+
   .modal-success p {
     margin: 0 0 24px;
     color: #333;
   }
-  
+
   .modal-ok {
     padding: 8px 24px;
     background: #3b82f6;
