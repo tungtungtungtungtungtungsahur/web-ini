@@ -3,6 +3,7 @@
 import { ref, onMounted } from 'vue'
 import { auth } from './firebase'
 import { onAuthStateChanged } from 'firebase/auth'
+import MainSidebar from './components/Sidebar.vue'
 
 const isLoading = ref(true)
 
@@ -21,6 +22,7 @@ onMounted(() => {
       <div class="loading-spinner"></div>
     </div>
     <router-view v-else />
+    <MainSidebar />
   </div>
 </template>
 
@@ -128,5 +130,12 @@ nav a.router-link-exact-active {
   100% {
     transform: rotate(360deg);
   }
+}
+
+#app {
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #2c3e50;
 }
 </style>
