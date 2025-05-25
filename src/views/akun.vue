@@ -43,7 +43,6 @@
       </div>
     </div>
 
-    <!-- Modal Konfirmasi Keluar -->
     <div v-if="showLogoutConfirm" class="modal-overlay">
       <div class="modal-box">
         <svg class="warning-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="#f44336" stroke-width="2">
@@ -87,7 +86,7 @@ export default {
     const confirmSignOut = async () => {
       try {
         await signOut(auth)
-        router.push('/signin')
+        router.push('/landing')
       } catch (error) {
         console.error('Gagal keluar:', error)
       }

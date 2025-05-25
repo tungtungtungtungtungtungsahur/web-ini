@@ -79,7 +79,7 @@ const navigationItems = [
     icon: 'fas fa-user',
     activeIcon: 'fas fa-user',
     label: 'Akun',
-    route: '/profile'
+    route: '/akun'
   }
 ]
 
