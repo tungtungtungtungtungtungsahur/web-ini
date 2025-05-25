@@ -1,15 +1,5 @@
 <template>
   <div class="home-page">
-    <div class="search-bar">
-      <input
-        type="text"
-        v-model="searchQuery"
-        placeholder="Pencarian"
-        @keyup.enter="handleSearch"
-      >
-      <button @click="handleSearch">Cari</button>
-    </div>
-
     <div class="categories-section">
       <h2>Kategori</h2>
       <div class="categories-scroll">
@@ -75,7 +65,7 @@ import { auth, db } from '../firebase'
 import { collection, getDocs, query, orderBy } from 'firebase/firestore'
 
 defineComponent({
-  name: 'Home'
+  name: 'HomePage'
 })
 
 interface Category {
@@ -98,7 +88,6 @@ interface Product {
 const router = useRouter()
 
 // State
-const searchQuery = ref<string>('')
 const selectedCategory = ref<string>('Semua')
 const loading = ref<boolean>(true)
 const error = ref<string>('')
@@ -174,15 +163,6 @@ const selectCategory = (category: string): void => {
   selectedCategory.value = category
 }
 
-const handleSearch = (): void => {
-  if (searchQuery.value.trim()) {
-    router.push({
-      name: 'search',
-      query: { keyword: searchQuery.value }
-    })
-  }
-}
-
 const navigateToDetail = (product: Product): void => {
   router.push({
     name: 'product-detail',
@@ -207,44 +187,6 @@ const formatPrice = (price: string): string => {
   margin: 0 auto;
   background-color: #f8f9fa;
   min-height: 100vh;
-}
-
-.search-bar {
-  display: flex;
-  margin-bottom: 24px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  overflow: hidden;
-}
-
-.search-bar input {
-  flex: 1;
-  padding: 12px 16px;
-  border: none;
-  border-radius: 12px 0 0 12px;
-  background-color: #fff;
-  font-size: 16px;
-  outline: none;
-  box-shadow: none;
-}
-
-.search-bar button {
-  padding: 0 24px;
-  border: none;
-  border-radius: 0 12px 12px 0;
-  background-color: #ff6b00;
-  color: white;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  height: 48px;
-  display: flex;
-  align-items: center;
-}
-
-.search-bar button:hover {
-  background-color: #e65c00;
 }
 
 .categories-section {

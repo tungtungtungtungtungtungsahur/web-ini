@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { auth } from './firebase'
 import { onAuthStateChanged } from 'firebase/auth'
-import MainSidebar from './components/Sidebar.vue'
+import AppBar from './components/AppBar.vue'
 import { useRoute } from 'vue-router'
 
 const isLoading = ref(true)
@@ -23,8 +23,8 @@ onMounted(() => {
       <div class="loading-spinner"></div>
     </div>
     <div class="layout" v-else>
-      <MainSidebar v-if="route.name !== 'akunTokoSisiPenjual'" />
-      <div :class="{'content': true, 'full-width': route.name === 'akunTokoSisiPenjual'}">
+      <AppBar v-if="route.name !== 'akunTokoSisiPenjual'" />
+      <div class="content">
         <router-view />
       </div>
     </div>
@@ -41,6 +41,7 @@ onMounted(() => {
 
 .layout {
   display: flex;
+  flex-direction: column;
   height: 100vh;
   width: 100%;
 }

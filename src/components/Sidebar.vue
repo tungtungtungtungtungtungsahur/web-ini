@@ -1,11 +1,5 @@
 <template>
-  <div :class="['sidebar', { 'sidebar-open': isOpen }]">
-    <div class="sidebar-header">
-      <h3>Menu</h3>
-      <button class="toggle-btn" @click="toggleSidebar">
-        <i :class="isOpen ? 'fas fa-chevron-left' : 'fas fa-chevron-right'"></i>
-      </button>
-    </div>
+  <div class="sidebar">
     <div class="sidebar-items">
       <div
         v-for="(item, index) in navigationItems"
@@ -19,7 +13,7 @@
             {{ cartCount }}
           </span>
         </div>
-        <span class="label" v-show="isOpen">{{ item.label }}</span>
+        <span class="label">{{ item.label }}</span>
       </div>
     </div>
   </div>
@@ -38,7 +32,6 @@ defineOptions({
 const router = useRouter()
 const selectedIndex = ref(0)
 const cartCount = ref(0)
-const isOpen = ref(true) // Awalnya terbuka
 
 const navigationItems = [
   {
@@ -78,10 +71,6 @@ const handleItemClick = (index: number) => {
   router.push(navigationItems[index].route)
 }
 
-const toggleSidebar = () => {
-  isOpen.value = !isOpen.value
-}
-
 onMounted(() => {
   const cartRef = collection(db, 'cart')
   onSnapshot(cartRef, (snapshot) => {
@@ -92,48 +81,13 @@ onMounted(() => {
 
 <style scoped>
 .sidebar {
-  width: 60px;
+  width: 250px;
   background-color: white;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-  transition: width 0.3s ease;
+  transition: transform 0.3s ease;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-}
-
-.sidebar-open {
-  width: 250px;
-}
-
-.sidebar-header {
-  padding: 20px;
-  border-bottom: 1px solid #eee;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.sidebar-header h3 {
-  margin: 0;
-  color: #333;
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.toggle-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-  transition: all 0.3s ease;
-}
-
-.toggle-btn:hover {
-  color: #000;
+  height: 100%;
 }
 
 .sidebar-items {
@@ -149,7 +103,6 @@ onMounted(() => {
   cursor: pointer;
   color: #666;
   transition: all 0.3s ease;
-  white-space: nowrap;
 }
 
 .sidebar-item:hover {
@@ -176,12 +129,6 @@ onMounted(() => {
 .label {
   margin-left: 12px;
   font-size: 14px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.sidebar-open .label {
-  opacity: 1;
 }
 
 .badge {
