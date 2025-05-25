@@ -28,6 +28,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/landing',
+      name: 'landing',
+      component: () => import('../views/landing.vue'),
+      meta: { requiresGuest: true },
+    },
+    {
       path: '/signup',
       name: 'signup',
       component: () => import('../views/signup.vue'),
