@@ -74,7 +74,7 @@ onMounted(() => {
           if (data.photoURL) userPhotoURL.value = data.photoURL
         }
       }
-      // Listen for unread messages
+
       listenForUnreadMessages(user.uid)
     } else {
       userName.value = 'User'

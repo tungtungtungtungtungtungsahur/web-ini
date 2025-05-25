@@ -74,6 +74,13 @@ interface Chat {
     senderId: string
   }
   unreadCount: number
+  productId?: string
+  productInfo?: {
+    id: string
+    name: string
+    price: number
+    images: string[]
+  }
 }
 
 export default defineComponent({
@@ -125,7 +132,8 @@ export default defineComponent({
       router.push({
         name: 'ChatDetail',
         params: {
-          receiverId: chat.otherUser.id
+          receiverId: chat.otherUser.id,
+          productId: chat.productId
         }
       })
     }
@@ -170,6 +178,18 @@ export default defineComponent({
               : undefined
             console.log('Other user data:', otherUser)
 
+            // Get product info if exists
+            let productInfo = undefined
+            if (chatData.productId) {
+              const productDoc = await getDoc(doc(db, 'products', chatData.productId))
+              if (productDoc.exists()) {
+                productInfo = {
+                  id: productDoc.id,
+                  ...productDoc.data()
+                }
+              }
+            }
+
             let unreadCount = 0
             if (chatData.lastMessage && !chatData.lastMessage.read && chatData.lastMessage.senderId !== currentUser.uid) {
               unreadCount = 1
@@ -184,7 +204,9 @@ export default defineComponent({
                 avatarUrl: otherUser?.avatarUrl
               },
               lastMessage: chatData.lastMessage,
-              unreadCount
+              unreadCount,
+              productId: chatData.productId,
+              productInfo
             }
           })
 
@@ -250,6 +272,9 @@ export default defineComponent({
   padding: 1rem;
   background-color: #000000;
   color: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .header h1 {
@@ -262,6 +287,9 @@ export default defineComponent({
   padding: 0.5rem 1rem;
   background-color: white;
   border-bottom: 1px solid #e0e0e0;
+  position: sticky;
+  top: 3.5rem;
+  z-index: 9;
 }
 
 .search-bar input {
@@ -276,6 +304,7 @@ export default defineComponent({
 .chat-items {
   flex: 1;
   overflow-y: auto;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .chat-item {
@@ -285,6 +314,7 @@ export default defineComponent({
   border-bottom: 1px solid #e0e0e0;
   cursor: pointer;
   transition: background-color 0.2s;
+  gap: 0.75rem;
 }
 
 .chat-item:hover {
@@ -295,13 +325,16 @@ export default defineComponent({
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  margin-right: 1rem;
   object-fit: cover;
+  flex-shrink: 0;
 }
 
 .chat-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .chat-header {
@@ -316,17 +349,23 @@ export default defineComponent({
   font-size: 1rem;
   font-weight: 600;
   color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .timestamp {
   font-size: 0.75rem;
   color: #667781;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
 }
 
 .chat-preview {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
 }
 
 .message-preview {
@@ -336,7 +375,7 @@ export default defineComponent({
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 80%;
+  flex: 1;
 }
 
 .unread-badge {
@@ -348,6 +387,7 @@ export default defineComponent({
   border-radius: 1rem;
   min-width: 1.5rem;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .loading {
@@ -355,6 +395,7 @@ export default defineComponent({
   justify-content: center;
   align-items: center;
   height: 100%;
+  padding: 2rem;
 }
 
 .spinner {
@@ -367,18 +408,18 @@ export default defineComponent({
 }
 
 @keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .error {
   padding: 1rem;
   color: #dc3545;
   text-align: center;
+  background-color: #fff;
+  margin: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .empty {
@@ -386,5 +427,74 @@ export default defineComponent({
   text-align: center;
   color: #667781;
   font-size: 1rem;
+  background-color: #fff;
+  margin: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 0.75rem;
+  }
+
+  .header h1 {
+    font-size: 1.25rem;
+  }
+
+  .search-bar {
+    padding: 0.5rem;
+  }
+
+  .search-bar input {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .chat-item {
+    padding: 0.75rem;
+  }
+
+  .avatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  .chat-header h3 {
+    font-size: 0.875rem;
+  }
+
+  .message-preview {
+    font-size: 0.75rem;
+  }
+
+  .timestamp {
+    font-size: 0.625rem;
+  }
+
+  .unread-badge {
+    font-size: 0.625rem;
+    padding: 0.125rem 0.375rem;
+    min-width: 1.25rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .header {
+    padding: 0.5rem;
+  }
+
+  .header h1 {
+    font-size: 1.125rem;
+  }
+
+  .chat-item {
+    padding: 0.5rem;
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+  }
 }
 </style>

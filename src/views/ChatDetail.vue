@@ -792,69 +792,107 @@ export default defineComponent({
 .header {
   display: flex;
   align-items: center;
-  padding: 16px;
+  padding: 1rem;
   background: white;
   border-bottom: 1px solid #eee;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .back-btn {
   background: none;
   border: none;
-  font-size: 24px;
+  font-size: 1.5rem;
   cursor: pointer;
-  padding: 8px;
-  margin-right: 16px;
+  padding: 0.5rem;
+  margin-right: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.back-btn:hover {
+  background-color: #f0f0f0;
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .avatar {
-  width: 40px;
-  height: 40px;
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: 50%;
   object-fit: cover;
+  flex-shrink: 0;
+}
+
+.user-details {
+  min-width: 0;
+  flex: 1;
 }
 
 .user-details h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .user-details p {
   margin: 0;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .product-info {
   display: flex;
-  padding: 12px 16px;
+  padding: 0.75rem 1rem;
   background: white;
   border-bottom: 1px solid #eee;
-  gap: 12px;
+  gap: 0.75rem;
+  align-items: center;
 }
 
 .product-img {
-  width: 60px;
-  height: 60px;
-  border-radius: 8px;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.5rem;
   object-fit: cover;
+  flex-shrink: 0;
+}
+
+.product-details {
+  min-width: 0;
+  flex: 1;
 }
 
 .product-details h3 {
-  margin: 0 0 4px 0;
-  font-size: 14px;
+  margin: 0 0 0.25rem 0;
+  font-size: 0.875rem;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .price {
   margin: 0;
-  font-size: 14px;
+  font-size: 0.875rem;
   color: #ff6b00;
   font-weight: 600;
 }
@@ -862,14 +900,15 @@ export default defineComponent({
 .messages {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.5rem;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .message {
-  max-width: 70%;
+  max-width: 85%;
   display: flex;
   flex-direction: column;
 }
@@ -883,10 +922,11 @@ export default defineComponent({
 }
 
 .message-content {
-  padding: 8px 12px;
-  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
   background: white;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  word-break: break-word;
 }
 
 .message.sent .message-content {
@@ -894,10 +934,19 @@ export default defineComponent({
   color: white;
 }
 
+.message-content a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.message-content a:hover {
+  text-decoration: underline;
+}
+
 .timestamp {
-  font-size: 11px;
+  font-size: 0.625rem;
   color: #999;
-  margin-top: 4px;
+  margin-top: 0.25rem;
   align-self: flex-end;
 }
 
@@ -907,21 +956,50 @@ export default defineComponent({
 
 .input-area {
   display: flex;
-  padding: 12px;
+  padding: 0.75rem;
   background: white;
   border-top: 1px solid #eee;
-  gap: 8px;
+  gap: 0.5rem;
   align-items: center;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+}
+
+.location-button {
+  background: none;
+  border: none;
+  color: #666;
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.location-button:hover:not(:disabled) {
+  background-color: #f0f0f0;
+}
+
+.location-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .input-area input {
   flex: 1;
-  padding: 12px 16px;
+  padding: 0.75rem 1rem;
   border: 1px solid #ddd;
-  border-radius: 24px;
+  border-radius: 1.5rem;
   outline: none;
-  font-size: 15px;
+  font-size: 0.9375rem;
   transition: border-color 0.2s;
+  min-width: 0;
 }
 
 .input-area input:focus {
@@ -938,9 +1016,9 @@ export default defineComponent({
   color: white;
   border: none;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
+  width: 2.5rem;
+  height: 2.5rem;
+  min-width: 2.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -965,14 +1043,14 @@ export default defineComponent({
 }
 
 .send-icon {
-  width: 24px;
-  height: 24px;
+  width: 1.5rem;
+  height: 1.5rem;
   transition: transform 0.2s;
 }
 
 .sending-icon {
-  width: 24px;
-  height: 24px;
+  width: 1.5rem;
+  height: 1.5rem;
   animation: spin 1s linear infinite;
 }
 
@@ -981,41 +1059,17 @@ export default defineComponent({
   to { transform: rotate(360deg); }
 }
 
-/* Responsive styles */
-@media (max-width: 480px) {
-  .input-area {
-    padding: 8px;
-  }
-
-  .input-area input {
-    padding: 10px 14px;
-    font-size: 14px;
-  }
-
-  .send-button {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-  }
-
-  .send-icon,
-  .sending-icon {
-    width: 20px;
-    height: 20px;
-  }
-}
-
 .loading {
   display: flex;
   justify-content: center;
   align-items: center;
   flex: 1;
-  padding: 20px;
+  padding: 1.25rem;
 }
 
 .spinner {
-  width: 30px;
-  height: 30px;
+  width: 2rem;
+  height: 2rem;
   border: 3px solid #f3f3f3;
   border-top: 3px solid #0084ff;
   border-radius: 50%;
@@ -1025,14 +1079,18 @@ export default defineComponent({
 .error {
   color: #ff3b30;
   text-align: center;
-  padding: 20px;
+  padding: 1.25rem;
   flex: 1;
+  background: white;
+  margin: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .status {
-  font-size: 12px;
+  font-size: 0.625rem;
   color: #999;
-  margin-left: 4px;
+  margin-left: 0.25rem;
 }
 
 .message.sent .status {
@@ -1050,16 +1108,18 @@ export default defineComponent({
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  padding: 1rem;
 }
 
 .location-modal-content {
   background: white;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 500px;
-  max-height: 80vh;
-  overflow-y: auto;
-  padding: 20px;
+  border-radius: 1rem;
+  width: 100%;
+  max-width: 32rem;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .location-modal-header {
@@ -1355,5 +1415,160 @@ export default defineComponent({
 
 .recommendation-item:last-child {
   border-bottom: none;
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 0.75rem;
+  }
+
+  .back-btn {
+    font-size: 1.25rem;
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .avatar {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .user-details h2 {
+    font-size: 0.875rem;
+  }
+
+  .user-details p {
+    font-size: 0.625rem;
+  }
+
+  .product-info {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .product-img {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .product-details h3 {
+    font-size: 0.75rem;
+  }
+
+  .price {
+    font-size: 0.75rem;
+  }
+
+  .messages {
+    padding: 0.75rem;
+  }
+
+  .message {
+    max-width: 90%;
+  }
+
+  .message-content {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .input-area {
+    padding: 0.5rem;
+  }
+
+  .location-button,
+  .send-button {
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+  }
+
+  .send-icon,
+  .sending-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .input-area input {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .location-modal {
+    padding: 0.5rem;
+  }
+
+  .location-content {
+    max-height: 95vh;
+  }
+
+  .search-section {
+    padding: 0.75rem;
+  }
+
+  .search-input {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .location-recommendations,
+  .search-results {
+    max-height: 10rem;
+  }
+
+  .recommendation-item,
+  .search-result-item {
+    padding: 0.5rem;
+  }
+
+  .result-name {
+    font-size: 0.75rem;
+  }
+
+  .result-address {
+    font-size: 0.625rem;
+  }
+
+  .location-info-container {
+    padding: 0.75rem;
+  }
+
+  .location-info {
+    padding: 0.5rem;
+  }
+
+  .action-buttons {
+    padding: 0.75rem;
+  }
+
+  .send-location-button {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .header {
+    padding: 0.5rem;
+  }
+
+  .back-btn {
+    font-size: 1.125rem;
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .avatar {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .product-img {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .message-content {
+    font-size: 0.75rem;
+  }
 }
 </style>
