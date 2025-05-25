@@ -248,9 +248,9 @@ export default defineComponent({
 }
 
 .cart-container {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 32px auto;
-  padding: 0 24px 32px 24px;
+  padding: 0 48px 48px 48px;
   width: 100%;
   box-sizing: border-box;
   background: #fff;
@@ -262,10 +262,10 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
   background: #fff;
   border-radius: 16px 16px 0 0;
-  padding: 24px 0 0 0;
+  padding: 32px 0 0 0;
 }
 
 .back-btn {

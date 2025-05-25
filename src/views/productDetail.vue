@@ -11,69 +11,76 @@
       </div>
       <div v-else class="product-container">
         <!-- Header -->
-        <div class="header">
-          <button class="back-btn" @click="goBack">←</button>
-          <h2>Detail Produk</h2>
-        </div>
-
-        <!-- Product Images -->
-        <div class="product-images">
-          <div v-for="(image, index) in product.images" :key="index" class="product-image-item">
-            <img
-              :src="image || '/placeholder.png'"
-              :alt="`${product.name} - ${index + 1}`"
-              @error="handleImageError"
-            >
-          </div>
-        </div>
-
-        <!-- Product Info -->
-        <div class="product-info">
-          <h1 class="product-title">{{ product.name }}</h1>
-          <p class="product-price">Rp {{ formatPrice(product.price) }}</p>
-
-          <!-- Seller Info -->
-          <div class="seller-info" v-if="sellerData">
-            <img
-              :src="sellerData.avatarUrl || '/default-avatar.png'"
-              :alt="sellerData.name"
-              class="seller-avatar"
-              @error="handleImageError"
-            >
-            <div class="seller-details">
-              <h3 class="seller-name">{{ sellerData.name }}</h3>
-              <p class="seller-username">@{{ sellerData.username }}</p>
+        <div class="main-content">
+          <!-- Gallery Left -->
+          <div class="gallery-section">
+            <div class="main-image-wrapper" @click="showImageModal">
+              <img
+                :src="product.images?.[currentImageIndex] || '/placeholder.png'"
+                :alt="`${product.name} - ${currentImageIndex + 1}`"
+                class="main-image"
+                @error="handleImageError"
+              >
             </div>
-            <button class="visit-shop-btn" @click="visitShop">Kunjungi Toko</button>
-          </div>
-
-          <!-- Description -->
-          <div class="description">
-            <h3>Deskripsi</h3>
-            <p>{{ product.description || 'Tidak ada deskripsi' }}</p>
-          </div>
-
-          <!-- Product Details -->
-          <div class="product-details">
-            <h3>Detail Produk</h3>
-            <div class="detail-item">
-              <span class="label">Kategori</span>
-              <span class="value">{{ product.category || 'Tidak ada kategori' }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="label">Kondisi</span>
-              <span class="value">{{ product.condition || 'Tidak ada informasi' }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="label">Style</span>
-              <span class="value">{{ product.style || 'Tidak ada style' }}</span>
+            <div v-if="product.images && product.images.length > 1" class="thumbnails">
+              <div
+                v-for="(image, idx) in product.images"
+                :key="idx"
+                :class="['thumbnail', { active: idx === currentImageIndex }]"
+                @click="currentImageIndex = idx"
+              >
+                <img :src="image || '/placeholder.png'" :alt="`${product.name} - thumb ${idx + 1}`" @error="handleImageError" />
+              </div>
             </div>
           </div>
+          <!-- Info Right -->
+          <div class="info-section">
+            <h1 class="product-title">{{ product.name }}</h1>
+            <p class="product-price">Rp {{ formatPrice(product.price) }}</p>
 
-          <!-- Actions -->
-          <div class="actions">
-            <button class="chat-btn" @click="startChat">Chat Penjual</button>
-            <button class="cart-btn" @click="addToCart">+ Keranjang</button>
+            <!-- Seller Info -->
+            <div class="seller-info" v-if="sellerData">
+              <img
+                :src="sellerData.avatarUrl || '/default-avatar.png'"
+                :alt="sellerData.name"
+                class="seller-avatar"
+                @error="handleImageError"
+              >
+              <div class="seller-details">
+                <h3 class="seller-name">{{ sellerData.name }}</h3>
+                <p class="seller-username">@{{ sellerData.username }}</p>
+              </div>
+              <button class="visit-shop-btn" @click="visitShop">Kunjungi Toko</button>
+            </div>
+
+            <!-- Description -->
+            <div class="description">
+              <h3>Deskripsi</h3>
+              <p>{{ product.description || 'Tidak ada deskripsi' }}</p>
+            </div>
+
+            <!-- Product Details -->
+            <div class="product-details">
+              <h3>Detail Produk</h3>
+              <div class="detail-item">
+                <span class="label">Kategori</span>
+                <span class="value">{{ product.category || 'Tidak ada kategori' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="label">Kondisi</span>
+                <span class="value">{{ product.condition || 'Tidak ada informasi' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="label">Style</span>
+                <span class="value">{{ product.style || 'Tidak ada style' }}</span>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="actions">
+              <button class="chat-btn" @click="startChat">Chat Penjual</button>
+              <button class="cart-btn" @click="addToCart">+ Keranjang</button>
+            </div>
           </div>
         </div>
 
@@ -167,10 +174,6 @@
     }
   })
 
-  const goBack = () => {
-    router.go(-1)
-  }
-
   const handleImageError = (e: Event) => {
     const target = e.target as HTMLImageElement
     target.src = '/placeholder.png'
@@ -233,7 +236,7 @@
   .product-detail {
     min-height: 100vh;
     background-color: #f8f9fa;
-    padding: 16px;
+    padding: 32px 24px 32px 24px;
   }
 
   .loading,
@@ -261,57 +264,81 @@
   }
 
   .product-container {
-    max-width: 600px;
+    max-width: 1280px;
     margin: 0 auto;
+    box-sizing: border-box;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    padding: 32px 32px 40px 32px;
   }
 
-  .header {
+  .main-content {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
+    gap: 32px;
+    align-items: flex-start;
   }
 
-  .back-btn {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    padding: 8px;
-  }
-
-  .header h2 {
-    margin: 0;
-    font-size: 18px;
-    font-weight: bold;
-  }
-
-  .product-images {
-    background: white;
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 16px;
+  .gallery-section {
+    flex: 1 1 420px;
+    max-width: 480px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    align-items: center;
   }
 
-  .product-image-item {
+  .main-image-wrapper {
     width: 100%;
-    border-radius: 6px;
+    aspect-ratio: 1/1;
+    background: #fff;
+    border-radius: 12px;
     overflow: hidden;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
   }
 
-  .product-image-item img {
+  .main-image {
     width: 100%;
-    height: auto;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .thumbnails {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .thumbnail {
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: border 0.2s;
+    background: #fff;
+  }
+
+  .thumbnail.active {
+    border: 2px solid #222;
+  }
+
+  .thumbnail img {
+    width: 100%;
+    height: 100%;
     object-fit: cover;
   }
 
-  .product-info {
-    background: white;
-    border-radius: 8px;
-    padding: 16px;
+  .info-section {
+    flex: 1 1 400px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px 24px 24px 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
   }
 
   .product-title {
@@ -325,7 +352,7 @@
     margin: 0 0 16px;
     font-size: 20px;
     font-weight: bold;
-    color: #ff6b00;
+    color: #e53935;
   }
 
   .seller-info {
@@ -502,73 +529,14 @@
   }
 
   /* Responsive styles */
-  @media (max-width: 480px) {
-    .product-detail {
-      padding: 12px;
+  @media (max-width: 900px) {
+    .main-content {
+      flex-direction: column;
+      gap: 24px;
     }
-
-    .product-images {
-      padding: 8px;
-    }
-
-    .product-image-item {
+    .gallery-section, .info-section {
+      max-width: 100%;
       width: 100%;
-    }
-
-    .product-info {
-      padding: 12px;
-    }
-
-    .product-title {
-      font-size: 16px;
-    }
-
-    .product-price {
-      font-size: 18px;
-    }
-
-    .seller-avatar {
-      width: 32px;
-      height: 32px;
-    }
-
-    .seller-name {
-      font-size: 13px;
-    }
-
-    .seller-username {
-      font-size: 11px;
-    }
-
-    .visit-shop-btn {
-      padding: 4px 8px;
-      font-size: 11px;
-    }
-
-    .description h3 {
-      font-size: 13px;
-    }
-
-    .description p {
-      font-size: 13px;
-    }
-
-    .chat-btn,
-    .cart-btn {
-      padding: 10px;
-      font-size: 13px;
-    }
-
-    .product-details h3 {
-      font-size: 13px;
-    }
-
-    .detail-item {
-      font-size: 13px;
-    }
-
-    .detail-item .label {
-      width: 70px;
     }
   }
   </style>

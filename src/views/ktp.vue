@@ -1,10 +1,5 @@
 <template>
   <div class="ktp-verification-container">
-    <div class="header">
-      <span class="back-arrow" @click="goBack">&leftarrow;</span>
-      <h2>Verifikasi KTP</h2>
-    </div>
-
     <div class="form-wrapper">
       <div class="info-text">
         <p>Untuk menjual produk, Anda perlu memverifikasi KTP terlebih dahulu.</p>
@@ -28,12 +23,23 @@
         />
       </div>
 
-      <!-- Progress Bar -->
-      <div v-if="isLoading" class="progress-container">
-        <div class="progress-bar">
-          <div class="progress-fill" :style="{ width: `${verificationProgress}%` }"></div>
-        </div>
-        <div class="progress-text">{{ verificationProgress }}%</div>
+      <!-- NIK Input -->
+      <div class="form-group">
+        <label>NIK</label>
+        <input
+          v-model="nik"
+          type="text"
+          placeholder="Masukkan NIK sesuai KTP"
+          maxlength="16"
+          @input="validateNIK"
+        />
+        <span v-if="nikError" class="error-text">{{ nikError }}</span>
+      </div>
+
+      <!-- Nama Input -->
+      <div class="form-group">
+        <label>Nama Lengkap</label>
+        <input v-model="fullName" type="text" placeholder="Masukkan nama lengkap sesuai KTP" />
       </div>
 
       <!-- Submit Button -->
@@ -57,17 +63,6 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
-import Tesseract from 'tesseract.js'
-
-interface OCRResult {
-  text: string
-  confidence: number
-}
-
-interface TesseractProgress {
-  status: string
-  progress: number
-}
 
 export default defineComponent({
   name: 'KTPVerification',
@@ -78,17 +73,16 @@ export default defineComponent({
   data() {
     return {
       ktpPhoto: null as string | null,
-      ktpFile: null as File | null,
+      nik: '',
+      fullName: '',
+      nikError: '',
       isLoading: false,
       showSuccessModal: false,
-      verificationProgress: 0,
-      isVerifying: false,
-      ocrResult: null as OCRResult | null,
     }
   },
   computed: {
     isFormValid(): boolean {
-      return !!this.ktpFile && !this.isLoading
+      return !!(this.ktpPhoto && this.nik && this.fullName && !this.nikError)
     },
   },
   methods: {
@@ -108,169 +102,38 @@ export default defineComponent({
         return
       }
 
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Ukuran file terlalu besar. Maksimal 5MB')
-        return
-      }
-
       // Create preview
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const img = new Image()
-        img.onload = () => {
-          // Basic image validation
-          const isMinSize = img.width >= 200 && img.height >= 150
-
-          if (!isMinSize) {
-            alert('Kualitas foto terlalu rendah. Mohon ambil foto dengan resolusi lebih tinggi')
-            this.ktpPhoto = null
-            this.ktpFile = null
-            return
-          }
-
-          this.ktpPhoto = URL.createObjectURL(file)
-          this.ktpFile = file
-        }
-        img.src = e.target?.result as string
-      }
-      reader.readAsDataURL(file)
+      this.ktpPhoto = URL.createObjectURL(file)
     },
+    validateNIK() {
+      // Remove non-numeric characters
+      this.nik = this.nik.replace(/\D/g, '')
 
+      if (this.nik.length > 0 && this.nik.length !== 16) {
+        this.nikError = 'NIK harus 16 digit'
+      } else {
+        this.nikError = ''
+      }
+    },
     async submitVerification() {
-      if (!this.isFormValid || !this.ktpFile) return
+      if (!this.isFormValid) return
 
       this.isLoading = true
-      this.isVerifying = true
-      this.verificationProgress = 0
 
       try {
-        // Create image from file
-        const img = new Image()
-        img.src = URL.createObjectURL(this.ktpFile)
+        // Simulate API call
+        await new Promise((resolve) => setTimeout(resolve, 1500))
 
-        // Wait for image to load
-        await new Promise((resolve) => {
-          img.onload = resolve
-        })
+        // Store verification status in localStorage
+        localStorage.setItem('ktpVerified', 'true')
 
-        // Perform OCR with better configuration
-        this.verificationProgress = 30
-        const result = await Tesseract.recognize(
-          img,
-          'ind', // Indonesian language
-          {
-            logger: (m: { status: string; progress: number }) => {
-              if (m.status === 'recognizing text') {
-                this.verificationProgress = 30 + m.progress * 40
-              }
-            },
-            tessedit_char_whitelist:
-              '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,/- ', // Allow only these characters
-            tessedit_pageseg_mode: '6', // Assume uniform text block
-          },
-        )
-
-        this.verificationProgress = 70
-        const text = result.data.text.toLowerCase()
-        console.log('OCR Result:', text) // For debugging
-
-        // Extract NIK (16 digits) - More lenient pattern for validation
-        const nikMatch =
-          text.match(/\b\d{16}\b/) ||
-          text.match(/\b\d{1,3}[-\s]?\d{1,3}[-\s]?\d{1,3}[-\s]?\d{1,3}[-\s]?\d{1,3}[-\s]?\d{1,3}\b/)
-        if (!nikMatch) {
-          alert(
-            'Verifikasi Gagal: Tidak dapat menemukan NIK yang valid pada KTP. Mohon pastikan foto KTP jelas dan tidak terpotong.',
-          )
-          this.ktpPhoto = null
-          this.ktpFile = null
-          return
-        }
-        const extractedNik = nikMatch[0].replace(/[-\s]/g, '') // Cleaned NIK for internal check
-
-        // Extract Nama Lengkap - More lenient pattern for validation
-        const namaPatterns = [
-          /nama\s*:?\s*([^\n]+)/i,
-          /nama\s+lengkap\s*:?\s*([^\n]+)/i,
-          /nama\s+orang\s*:?\s*([^\n]+)/i,
-        ]
-
-        let namaMatch = null
-        for (const pattern of namaPatterns) {
-          namaMatch = text.match(pattern)
-          if (namaMatch) break
-        }
-
-        if (!namaMatch) {
-          alert(
-            'Verifikasi Gagal: Tidak dapat menemukan nama lengkap pada KTP. Mohon pastikan foto KTP jelas dan tidak terpotong.',
-          )
-          this.ktpPhoto = null
-          this.ktpFile = null
-          return
-        }
-        const extractedFullName = namaMatch[1].trim() // Cleaned name for internal check
-
-        // Check for KTP-specific keywords - More lenient matching
-        const ktpKeywords = [
-          'ktp',
-          'kartu',
-          'penduduk',
-          'provinsi',
-          'kabupaten',
-          'kota',
-          'kecamatan',
-          'kelurahan',
-          'desa',
-          'rt',
-          'rw',
-        ]
-
-        // Count how many keywords are found
-        const foundKeywords = ktpKeywords.filter((keyword) => text.includes(keyword))
-        const hasKtpKeywords = foundKeywords.length >= 3 // Require at least 3 keywords to match
-
-        if (!hasKtpKeywords) {
-          console.log('Found keywords:', foundKeywords) // For debugging
-          alert(
-            'Verifikasi Gagal: Dokumen yang diupload mungkin bukan KTP yang valid. Mohon pastikan foto KTP jelas dan tidak terpotong.',
-          )
-          this.ktpPhoto = null
-          this.ktpFile = null
-          return
-        }
-
-        // If all checks pass, consider it valid
-        this.verificationProgress = 100
-        this.ocrResult = result.data
-
-        console.log('Validation Successful!') // For debugging
-        console.log('Extracted NIK (internal):', extractedNik)
-        console.log('Extracted Nama (internal):', extractedFullName)
-        console.log('Found Keywords:', foundKeywords) // For debugging
-
-        // Store verification status and user data in localStorage (optional, based on flow)
-        // localStorage.setItem('ktpVerified', 'true')
-        // localStorage.setItem('userNIK', extractedNik) // Store if needed later
-        // localStorage.setItem('userFullName', extractedFullName) // Store if needed later
-        // localStorage.setItem('verificationDate', new Date().toISOString())
-
-        this.showSuccessModal = true // Show success modal on valid KTP
-      } catch (error: unknown) {
-        console.error('Verification error:', error)
-        const errorMessage =
-          error instanceof Error ? error.message : 'Terjadi kesalahan. Silakan coba lagi.'
-        alert(`Verifikasi Gagal: ${errorMessage}`)
-        this.ktpPhoto = null
-        this.ktpFile = null
+        this.showSuccessModal = true
+      } catch (error) {
+        alert('Terjadi kesalahan. Silakan coba lagi.')
       } finally {
         this.isLoading = false
-        this.isVerifying = false
-        this.verificationProgress = 0
       }
     },
-
     onVerificationSuccess() {
       this.showSuccessModal = false
       this.router.push('/sell')
@@ -281,51 +144,24 @@ export default defineComponent({
 
 <style scoped>
 .ktp-verification-container {
-  width: 100vw;
-  height: 100vh;
-  background: #f6f2fa;
-  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 32px 0;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 1;
-}
-
-.header {
-  width: 100%;
-  display: flex;
   align-items: center;
-  padding: 16px 24px;
-  background: #1b2a30;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  z-index: 10;
-}
-
-.back-arrow {
-  font-size: 28px;
-  cursor: pointer;
-  color: #fff;
-  margin-right: 12px;
-}
-
-.header h2 {
-  font-size: 1.4rem;
-  font-weight: 500;
-  color: #fff;
-  margin: 0;
+  overflow-y: auto;
 }
 
 .form-wrapper {
   width: 100%;
-  max-width: 600px;
-  margin: 100px auto 20px;
+  max-width: 1200px;
+  margin: 48px auto 32px auto;
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-  padding: 24px;
+  padding: 48px 48px 40px 48px;
   box-sizing: border-box;
 }
 
@@ -477,43 +313,5 @@ export default defineComponent({
   color: white;
   font-weight: 600;
   cursor: pointer;
-}
-
-.progress-container {
-  margin-top: 20px;
-  text-align: center;
-}
-
-.progress-bar {
-  width: 100%;
-  height: 8px;
-  background-color: #e5e7eb;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background-color: #3b82f6;
-  transition: width 0.3s ease;
-}
-
-.progress-text {
-  margin-top: 8px;
-  font-size: 0.9rem;
-  color: #666;
-}
-
-.extracted-data {
-  margin-top: 20px;
-  padding: 15px;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.extracted-data .form-group input {
-  background-color: #f1f5f9;
-  cursor: not-allowed;
 }
 </style>
