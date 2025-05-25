@@ -5,38 +5,45 @@
         <h2>Edit Profil</h2>
       </div>
   
-      <div class="content">
-        <img :src="photoURL" alt="Profile" class="profile-img" />
-  
-        <label class="input-label">Username Baru</label>
-        <input v-model="username" type="text" class="input-box" />
-  
-        <button class="save-button" @click="saveChanges">Simpan Perubahan</button>
+      <div class="profile-pic-wrapper">
+        <img :src="photoURL" alt="Profile" class="profile-pic" />
       </div>
+  
+      <div class="form-group">
+        <label for="username">Username Baru</label>
+        <input
+          id="username"
+          v-model="username"
+          type="text"
+          class="input-field"
+          placeholder="Masukkan username baru"
+        />
+      </div>
+  
+      <button class="save-button" @click="updateProfile">Simpan Perubahan</button>
     </div>
   </template>
   
   <script lang="ts">
+  import { ref, onMounted } from 'vue'
   import { useRouter } from 'vue-router'
-  import { onAuthStateChanged } from 'firebase/auth'
   import { auth, db } from '../firebase'
   import { doc, getDoc, updateDoc } from 'firebase/firestore'
-  import { ref, onMounted } from 'vue'
+  import { onAuthStateChanged } from 'firebase/auth'
   
   export default {
     name: 'EditProfile',
     setup() {
       const router = useRouter()
       const username = ref('')
-      const photoURL = ref('https://placehold.co/100x100/pink/white?text=Profile')
-      const uid = ref('')
+      const photoURL = ref('https://placehold.co/100x100')
   
       onMounted(() => {
         onAuthStateChanged(auth, async (user) => {
           if (user) {
-            uid.value = user.uid
             const docRef = doc(db, 'users', user.uid)
             const docSnap = await getDoc(docRef)
+  
             if (docSnap.exists()) {
               const data = docSnap.data()
               username.value = data.username || ''
@@ -46,20 +53,27 @@
         })
       })
   
-      const saveChanges = async () => {
-        if (!uid.value) return
-        const userRef = doc(db, 'users', uid.value)
-        await updateDoc(userRef, {
-          username: username.value,
-        })
-        router.back()
+      const updateProfile = async () => {
+        const user = auth.currentUser
+        if (user) {
+          const userRef = doc(db, 'users', user.uid)
+          try {
+            await updateDoc(userRef, {
+              username: username.value,
+            })
+            alert('Perubahan disimpan.')
+            router.push('/akun')
+          } catch (error) {
+            console.error('Gagal memperbarui profil:', error)
+          }
+        }
       }
   
       return {
         router,
         username,
         photoURL,
-        saveChanges,
+        updateProfile,
       }
     },
   }
@@ -68,16 +82,16 @@
   <style scoped>
   .edit-profile-container {
     padding: 20px;
-    background: #fff;
-    min-height: 100vh;
     font-family: sans-serif;
+    background: white;
+    min-height: 100vh;
   }
   
   .header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 30px;
+    gap: 12px;
+    margin-bottom: 20px;
   }
   
   .back-button {
@@ -85,58 +99,57 @@
     border: none;
     font-size: 24px;
     cursor: pointer;
-    color: black;
   }
   
-  h2 {
-    font-size: 20px;
-    font-weight: bold;
-  }
-  
-  .content {
+  .profile-pic-wrapper {
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
   }
   
-  .profile-img {
-    width: 100px;
-    height: 100px;
+  .profile-pic {
+    width: 120px;
+    height: 120px;
     border-radius: 50%;
     object-fit: cover;
-    margin-bottom: 30px;
+    border: 3px solid #ccc;
   }
   
-  .input-label {
-    align-self: flex-start;
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 24px;
+  }
+  
+  label {
     margin-bottom: 6px;
-    font-size: 14px;
-    color: #5f5f5f;
+    font-weight: 600;
+    color: #555;
   }
   
-  .input-box {
-    width: 100%;
-    padding: 12px;
-    font-size: 16px;
-    border: 2px solid #9c27b0;
+  .input-field {
+    border: 2px solid #7e57c2;
+    padding: 10px;
     border-radius: 8px;
-    margin-bottom: 20px;
+    font-size: 16px;
+    outline: none;
   }
   
   .save-button {
     width: 100%;
+    background-color: #1a2b35;
+    color: white;
+    border: none;
     padding: 14px;
     font-size: 16px;
-    color: white;
-    background-color: #1976d2;
-    border: none;
     border-radius: 10px;
     cursor: pointer;
     font-weight: bold;
+    transition: background-color 0.2s ease;
   }
   
   .save-button:hover {
-    background-color: #1157a2;
+    background-color: #1565c0;
   }
   </style>
   
