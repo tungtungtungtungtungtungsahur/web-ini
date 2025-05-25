@@ -460,8 +460,8 @@
     cursor: pointer;
     color: #fff;
     font-weight: 400;
-    margin-right: 12px;
-    margin-left: 0;
+    margin-right: 50px;
+    margin-left: -50px;
   }
 
   .header h2 {
