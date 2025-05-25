@@ -99,7 +99,16 @@
     </section>
 
     <section class="product-detail-section" v-if="selectedProduct">
-      <img :src="selectedProduct.imageUrl" alt="Product Image" class="detail-product-image">
+      <div class="product-images">
+        <div v-for="(image, index) in selectedProduct.images" :key="index" class="product-image-item">
+          <img
+            :src="image || '/placeholder.png'"
+            :alt="`${selectedProduct.name} - ${index + 1}`"
+            @error="handleImageError"
+            @click="openImageModal(image || '/placeholder.png')"
+          >
+        </div>
+      </div>
       <div class="detail-content">
         <h2>{{ selectedProduct.name }}</h2>
         <p class="detail-price">Rp {{ selectedProduct.price }}</p>
@@ -127,6 +136,11 @@
           <button @click="cancelDelete">Tidak</button>
         </div>
       </div>
+    </div>
+
+    <div class="image-modal-overlay" v-if="showImageModal" @click="closeImageModal"></div>
+    <div class="image-modal-container" v-if="showImageModal">
+      <img :src="currentZoomImageUrl" alt="Zoomed Image" class="zoomed-image">
     </div>
 
   </div>
@@ -157,6 +171,8 @@ export default {
       selectedProduct: null,
       showDeleteModal: false,
       productToDelete: null,
+      showImageModal: false,
+      currentZoomImageUrl: '',
     };
   },
   created() {
@@ -237,7 +253,18 @@ export default {
     cancelDelete() {
       this.showDeleteModal = false;
       this.productToDelete = null;
-    }
+    },
+    handleImageError(event) {
+      event.target.src = '/placeholder.png';
+    },
+    openImageModal(imageUrl) {
+      this.currentZoomImageUrl = imageUrl;
+      this.showImageModal = true;
+    },
+    closeImageModal() {
+      this.showImageModal = false;
+      this.currentZoomImageUrl = '';
+    },
   }
 }
 </script>
@@ -525,7 +552,7 @@ body {
     height: 100px;
     object-fit: cover;
     border-radius: 4px;
-    margin-bottom: 10px;
+    margin-bottom: 30px;
 }
 
 .product-details {
@@ -565,11 +592,27 @@ body {
   padding-top: 20px;
   padding-bottom: 20px;
   background-color: #f8f8f8;
+  overflow: hidden;
 }
 
-.detail-product-image {
-  width: 100%;
-  height: 300px;
+.product-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, 160px); /* Increase fixed size for grid items to 160px */
+  gap: 20px; /* Adjust gap */
+  margin-bottom: 50px; /* Add more space between images and text */
+}
+
+.product-image-item {
+  width: 160px; /* Set fixed width for the container */
+  height: 160px; /* Set fixed height for the container */
+  border-radius: 6px; /* Keep border radius */
+  overflow: hidden;
+  /* Remove aspect-ratio as we are using fixed height and width */
+}
+
+.product-image-item img {
+  width: 100%; /* Fill the container */
+  height: 100%; /* Fill the container */
   object-fit: cover;
 }
 
@@ -691,5 +734,34 @@ body {
     .barang-item {
         flex-basis: calc(25% - 11.25px);
     }
+}
+
+.image-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 100;
+}
+
+.image-modal-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 101;
+  max-width: 90%;
+  max-height: 90%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.zoomed-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 </style>

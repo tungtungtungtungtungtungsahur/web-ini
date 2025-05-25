@@ -18,28 +18,12 @@
 
         <!-- Product Images -->
         <div class="product-images">
-          <div class="main-image">
+          <div v-for="(image, index) in product.images" :key="index" class="product-image-item">
             <img
-              :src="product.images[currentImageIndex] || '/placeholder.png'"
-              :alt="product.name"
+              :src="image || '/placeholder.png'"
+              :alt="`${product.name} - ${index + 1}`"
               @error="handleImageError"
-              @click="showImageModal"
             >
-          </div>
-          <div class="thumbnail-list" v-if="product.images.length > 1">
-            <div
-              v-for="(image, index) in product.images"
-              :key="index"
-              class="thumbnail"
-              :class="{ active: currentImageIndex === index }"
-              @click="currentImageIndex = index"
-            >
-              <img
-                :src="image"
-                :alt="`${product.name} - ${index + 1}`"
-                @error="handleImageError"
-              >
-            </div>
           </div>
         </div>
 
@@ -307,48 +291,20 @@
     border-radius: 8px;
     padding: 12px;
     margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
 
-  .main-image {
+  .product-image-item {
     width: 100%;
-    aspect-ratio: 1;
-    margin-bottom: 12px;
     border-radius: 6px;
     overflow: hidden;
   }
 
-  .main-image img {
+  .product-image-item img {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-    cursor: pointer;
-  }
-
-  .thumbnail-list {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-  }
-
-  .thumbnail {
-    width: 60px;
-    height: 60px;
-    border-radius: 4px;
-    overflow: hidden;
-    cursor: pointer;
-    opacity: 0.6;
-    transition: opacity 0.2s;
-  }
-
-  .thumbnail.active {
-    opacity: 1;
-    border: 2px solid #007bff;
-  }
-
-  .thumbnail img {
-    width: 100%;
-    height: 100%;
+    height: auto;
     object-fit: cover;
   }
 
@@ -555,9 +511,8 @@
       padding: 8px;
     }
 
-    .thumbnail {
-      width: 50px;
-      height: 50px;
+    .product-image-item {
+      width: 100%;
     }
 
     .product-info {
