@@ -145,7 +145,7 @@
   
   <script lang="ts">
   import { defineComponent, ref, onMounted, computed } from 'vue';
-  import { useRoute } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
   import { db } from '../firebase'; // Assuming db is exported from firebase.js/ts
   import { doc, getDoc, setDoc } from 'firebase/firestore';
 
@@ -153,9 +153,8 @@
     name: 'EditDetailProduk', // Renamed component name
     setup() {
       const route = useRoute();
+      const router = useRouter();
       const productId = route.params.productId; // Get product ID from route
-
-      console.log('EditDetailProduk mounted with productId:', productId); // Log the received product ID
 
       // Reactive data properties, initialized potentially with default or empty values
       const photos = ref([]);
@@ -183,31 +182,34 @@
       ];
 
       onMounted(async () => {
+        // Fetch product data from Firebase
         if (productId) {
-          const productRef = doc(db, 'products', productId as string);
-          const productSnap = await getDoc(productRef);
+          try { // Added try-catch for fetching
+            const productRef = doc(db, 'products', productId as string);
+            const productSnap = await getDoc(productRef);
 
-          if (productSnap.exists()) {
-            const productData = productSnap.data();
-            console.log('Product data found:', productData); // Log fetched product data
-            // Populate form fields with fetched data
-            productName.value = productData.name || '';
-            description.value = productData.description || '';
-            category.value = productData.category || 'Pilih kategori';
-            style.value = productData.style || 'Pilih style';
-            condition.value = productData.condition || 'Pilih kondisi';
-            price.value = productData.price !== undefined ? productData.price : null; // Handle price potentially being 0 or null
-            // Assuming photos are stored as an array of URLs in 'images'
-            photos.value = productData.images || [];
-
-            console.log('Fetched product data:', productData);
-          } else {
-            console.error('Product with ID not found:', productId);
-            // Optionally redirect to an error page or product list
+            if (productSnap.exists()) {
+              const productData = productSnap.data();
+              // Populate form fields with fetched data
+              productName.value = productData.name || '';
+              description.value = productData.description || '';
+              category.value = productData.category || 'Pilih kategori';
+              style.value = productData.style || 'Pilih style';
+              condition.value = productData.condition || 'Pilih kondisi';
+              price.value = productData.price !== undefined ? productData.price : null;
+              photos.value = productData.images || [];
+              console.log('Fetched and populated product data:', productData); // Keep log for debugging
+            } else {
+              console.error('Product with ID not found:', productId);
+              // Optionally handle product not found (e.g., redirect)
+            }
+          } catch (error) {
+            console.error('Error fetching product data:', error);
+            // Optionally show a user-friendly error message without dedicated UI elements
           }
         } else {
           console.error('No product ID provided in route parameters.');
-          // Optionally handle this case, maybe redirect or show a message
+          // Optionally handle missing ID
         }
       });
 
@@ -303,8 +305,7 @@
       };
 
       const closeForm = () => {
-        alert('Tutup form');
-        // Implement navigation back or other close logic
+        router.go(-1); // Navigate back to the previous page
       };
 
       const onDescriptionInput = (e) => {
@@ -328,7 +329,7 @@
         categories,
         conditions,
         styles,
-        showCategoryModal: ref(false), // Assuming modals are controlled within this component
+        showCategoryModal: ref(false),
         showStyleModal: ref(false),
         showConditionModal: ref(false),
         showPriceModal: ref(false),
@@ -397,7 +398,7 @@
     z-index: 10;
     justify-content: left;
     align-items: left;
-    padding-left: 260px;
+    padding-left: 80px; /* Set left padding for sidebar clearance */
   }
   
   .back-arrow {
@@ -421,7 +422,7 @@
   .form-wrapper {
     width: 100%;
     max-width: 1200px;
-    margin: 20px auto;
+    margin: 80px auto 20px auto; /* Adjusted top margin to clear fixed header with padding */
     background: #fff;
     border-radius: 16px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.08);
@@ -434,7 +435,7 @@
     align-items: stretch;
     overflow-y: auto;
     transition: all 0.3s ease;
-    max-height: calc(100vh - 100px);
+    max-height: calc(100vh - 100px); /* Re-evaluate if this max-height is correct */
   }
   
   .form-wrapper:hover {

@@ -13,6 +13,7 @@ const authReady = new Promise((resolve) => {
   onAuthStateChanged(auth, (user) => {
     isAuthenticated = !!user
     isLoading = false
+    console.log('onAuthStateChanged: user', user ? user.uid : 'null', 'isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
     resolve(true)
   })
 })
@@ -51,7 +52,7 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/editDetailProduk',
+      path: '/editDetailProduk/:productId',
       name: 'editDetailProduk',
       component: () => import('../views/editDetailProduk.vue'),
       meta: { requiresAuth: true },
@@ -120,24 +121,33 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to, from, next) => {
+  console.log('beforeEach called for', to.path);
+  console.log('  isLoading:', isLoading, 'isAuthenticated:', isAuthenticated);
 
   if (isLoading) {
+    console.log('  Waiting for authReady...');
     await authReady
+    console.log('  authReady resolved. isLoading:', isLoading, 'isAuthenticated:', isAuthenticated);
   }
 
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
   const requiresGuest = to.matched.some((record) => record.meta.requiresGuest)
 
+  console.log('  requiresAuth:', requiresAuth, 'requiresGuest:', requiresGuest);
+
   // If the route requires auth and user is not authenticated
   if (requiresAuth && !isAuthenticated) {
+    console.log('  Requires auth but not authenticated, redirecting to /signin');
     next('/signin')
   }
   // If the route is for guests and user is authenticated
   else if (requiresGuest && isAuthenticated) {
+    console.log('  Requires guest but authenticated, redirecting to /');
     next('/')
   }
 
   else {
+    console.log('  Proceeding with navigation.');
     next()
   }
 })
