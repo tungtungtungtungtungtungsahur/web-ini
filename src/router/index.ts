@@ -102,7 +102,14 @@ const router = createRouter({
       path: '/cart-done',
       name: 'CartDone',
       component:() => import('../views/CartDone.vue'),
-    }
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/search',
+      name: 'search',
+      component: () => import('../views/SearchResults.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 

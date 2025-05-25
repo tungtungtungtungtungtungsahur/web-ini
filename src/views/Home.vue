@@ -7,7 +7,7 @@
         placeholder="Pencarian"
         @keyup.enter="handleSearch"
       >
-      <i class="fas fa-search"></i>
+      <button @click="handleSearch">Cari</button>
     </div>
 
     <div class="categories-section">
@@ -162,13 +162,6 @@ const filteredProducts = computed(() => {
     filtered = filtered.filter((p: Product) => p.category === selectedCategory.value)
   }
 
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter((p: Product) =>
-      p.name.toLowerCase().includes(query) ||
-      p.description.toLowerCase().includes(query)
-    )
-  }
 
   return filtered
 })
@@ -182,7 +175,7 @@ const handleSearch = (): void => {
   if (searchQuery.value.trim()) {
     router.push({
       name: 'search',
-      query: { q: searchQuery.value }
+      query: { keyword: searchQuery.value }
     })
   }
 }
@@ -214,26 +207,41 @@ const formatPrice = (price: string): string => {
 }
 
 .search-bar {
-  position: relative;
+  display: flex;
   margin-bottom: 24px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow: hidden;
 }
 
 .search-bar input {
-  width: 100%;
-  padding: 12px 40px 12px 16px;
+  flex: 1;
+  padding: 12px 16px;
   border: none;
-  border-radius: 12px;
+  border-radius: 12px 0 0 12px;
   background-color: #fff;
   font-size: 16px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  outline: none;
+  box-shadow: none;
 }
 
-.search-bar i {
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #666;
+.search-bar button {
+  padding: 0 24px;
+  border: none;
+  border-radius: 0 12px 12px 0;
+  background-color: #ff6b00;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  height: 48px;
+  display: flex;
+  align-items: center;
+}
+
+.search-bar button:hover {
+  background-color: #e65c00;
 }
 
 .categories-section {
