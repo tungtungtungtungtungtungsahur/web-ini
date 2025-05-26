@@ -38,7 +38,10 @@
                   <h3>{{ product.name }}</h3>
                   <p>Rp {{ product.price }}</p>
                 </div>
-                <span class="edit-icon" @click="viewProductDetail(product)">✏️</span>
+                <div class="action-icons">
+                  <span class="edit-icon" @click="viewProductDetail(product)">✏️</span>
+                  <span class="delete-icon" @click="deleteProduct(product)">🗑️</span>
+                </div>
               </div>
             </div>
           </div>
@@ -142,7 +145,7 @@
 <script lang="ts">
 import AppBar from '../components/AppBar.vue'
 import { auth, db } from '../firebase'
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
+import { doc, getDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
 
 export default {
@@ -227,6 +230,7 @@ export default {
     viewProductDetail(product) {
       console.log('Viewing product detail for:', product);
       this.selectedProduct = product;
+      this.$router.push({ name: 'editDetailProduk', params: { productId: product.id } });
     },
     goBack() {
       this.$router.push('/akun');
@@ -234,17 +238,29 @@ export default {
     editProduct() {
       this.$router.push({ name: 'editDetailProduk', params: { productId: this.selectedProduct.id } });
     },
-    deleteProduct() {
-      this.productToDelete = this.selectedProduct;
+    deleteProduct(product) {
+      this.productToDelete = product;
       this.showDeleteModal = true;
     },
-    confirmDelete() {
-      console.log('Deleting product:', this.productToDelete.id);
-      this.userProducts = this.userProducts.filter(product => product.id !== this.productToDelete.id);
-      this.selectedProduct = null;
-      this.showDeleteModal = false;
-      this.productToDelete = null;
-      alert('Product deleted!');
+    async confirmDelete() {
+      try {
+        if (this.productToDelete) {
+          // Delete from Firestore
+          const productRef = doc(db, 'products', this.productToDelete.id);
+          await deleteDoc(productRef);
+          
+          // Update local state
+          this.userProducts = this.userProducts.filter(product => product.id !== this.productToDelete.id);
+          this.selectedProduct = null;
+          this.showDeleteModal = false;
+          this.productToDelete = null;
+          
+          alert('Produk berhasil dihapus!');
+        }
+      } catch (error) {
+        console.error('Error deleting product:', error);
+        alert('Gagal menghapus produk. Silakan coba lagi.');
+      }
     },
     cancelDelete() {
       this.showDeleteModal = false;
@@ -585,12 +601,28 @@ body {
     color: #555;
 }
 
-.edit-icon {
-    align-self: flex-end;
+.action-icons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.edit-icon, .delete-icon {
     font-size: 1.2em;
-    color: #777;
     cursor: pointer;
-    margin-top: 10px;
+    transition: transform 0.2s ease;
+}
+
+.edit-icon {
+    color: #007bff;
+}
+
+.delete-icon {
+    color: #dc3545;
+}
+
+.edit-icon:hover, .delete-icon:hover {
+    transform: scale(1.1);
 }
 
 .product-detail-section {
