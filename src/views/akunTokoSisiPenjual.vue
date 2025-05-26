@@ -32,7 +32,7 @@
         <section class="barang-section" v-if="activeTab === 'Barang' && !selectedProduct">
           <div class="barang-list">
             <div class="barang-item" v-for="product in userProducts" :key="product.id">
-              <img :src="product.imageUrl" alt="Product Image" class="product-image">
+              <img :src="product.images[0] || '/placeholder.png'" alt="Product Image" class="product-image">
               <div class="product-details">
                 <div class="product-info">
                   <h3>{{ product.name }}</h3>
@@ -188,7 +188,7 @@ export default {
           const userData = userSnap.data();
           this.name = userData.name || '';
           this.username = userData.username || '';
-          this.profileImageUrl = userData.photoURL || 'https://via.placeholder.com/100';
+          this.profileImageUrl = userData.profileImageUrl || 'https://via.placeholder.com/100';
         }
 
         const storeRef = doc(db, 'stores', user.uid);
@@ -223,6 +223,10 @@ export default {
           ...doc.data()
         }));
         console.log('Fetched user products:', this.userProducts);
+        // Log images array for each user product to debug
+        this.userProducts.forEach(product => {
+          console.log(`User Product ${product.id} images:`, product.images);
+        });
       } catch (error) {
         console.error('Error fetching user products:', error);
       }

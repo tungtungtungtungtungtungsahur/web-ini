@@ -130,6 +130,10 @@ const fetchProducts = async () => {
 
     products.value = fetchedProducts
     console.log('Products fetched:', fetchedProducts)
+    // Log images array for each product to debug
+    fetchedProducts.forEach(product => {
+      console.log(`Product ${product.id} images:`, product.images)
+    })
   } catch (err) {
     console.error('Error fetching products:', err)
     error.value = 'Gagal memuat produk. Silakan coba lagi.'
