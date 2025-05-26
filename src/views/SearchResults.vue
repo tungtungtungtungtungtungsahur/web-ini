@@ -9,7 +9,7 @@
       <div v-else-if="error" class="error">{{ error }}</div>
       <div v-else-if="products.length === 0" class="empty">Tidak ada produk ditemukan.</div>
       <div v-else class="products-list">
-        <div v-for="product in products" :key="product.id" class="product-card">
+        <div v-for="product in products" :key="product.id" class="product-card" @click="navigateToDetail(product)">
           <img :src="product.images?.[0] || 'https://via.placeholder.com/120'" class="product-img" alt="product" />
           <div class="product-details">
             <p class="product-title">{{ product.name }}</p>
@@ -54,6 +54,12 @@ export default defineComponent({
   methods: {
     goBack() {
       this.$router.go(-1)
+    },
+    navigateToDetail(product: Product) {
+      this.$router.push({
+        name: 'product-detail',
+        params: { id: product.id }
+      })
     },
     async fetchProducts() {
       try {
@@ -151,6 +157,12 @@ h2 {
   display: flex;
   flex-direction: column;
   align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.product-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 .product-img {
   width: 100%;
