@@ -1,6 +1,6 @@
 <template>
   <div class="app-bar">
-    <div class="app-bar-left" @click="goHome" style="cursor:pointer">
+    <div class="app-bar-left" @click="goHome" style="cursor: pointer">
       <img src="/barbek2.png" alt="Logo" class="logo" />
       <h1 class="app-name">barbek</h1>
     </div>
@@ -18,7 +18,12 @@
     <div class="app-bar-right">
       <template v-if="isLoggedIn">
         <div class="profile-section" @click="toggleDropdown">
-          <img :src="userPhotoURL" alt="Profile" class="avatar" @error="userPhotoURL = 'https://via.placeholder.com/40'" />
+          <img
+            :src="userPhotoURL"
+            alt="Profile"
+            class="avatar"
+            @error="userPhotoURL = 'https://placehold.co/600x400'"
+          />
           <span class="greeting">Hi, {{ userName }}</span>
           <i class="fas fa-chevron-down dropdown-icon"></i>
           <div v-if="showDropdown" class="dropdown-menu" @click.stop>
@@ -73,14 +78,14 @@ onMounted(() => {
         if (userDoc.exists()) {
           const data = userDoc.data()
           if (data.name) userName.value = data.name
-          if (data.photoURL) userPhotoURL.value = data.photoURL
+          if (data.profileImageUrl) userPhotoURL.value = data.profileImageUrl
         }
       }
 
       listenForUnreadMessages(user.uid)
     } else {
       userName.value = 'User'
-      userPhotoURL.value = 'https://via.placeholder.com/40'
+      userPhotoURL.value = 'https://placehold.co/600x400'
       unreadMessages.value = 0
     }
   })
@@ -108,7 +113,7 @@ const handleSearch = () => {
   if (searchQuery.value.trim()) {
     router.push({
       name: 'search',
-      query: { keyword: searchQuery.value }
+      query: { keyword: searchQuery.value },
     })
   }
 }
@@ -263,7 +268,8 @@ const logout = async () => {
 .sell-btn:hover {
   background: #b71c1c;
 }
-.login-btn, .signup-btn {
+.login-btn,
+.signup-btn {
   background: #e53935;
   color: #fff;
   border: none;
@@ -275,7 +281,8 @@ const logout = async () => {
   margin-left: 8px;
   transition: background 0.2s;
 }
-.login-btn:hover, .signup-btn:hover {
+.login-btn:hover,
+.signup-btn:hover {
   background: #b71c1c;
 }
 .dropdown-icon {
@@ -289,7 +296,7 @@ const logout = async () => {
   background: #fff;
   border: 1px solid #eee;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   min-width: 140px;
   z-index: 100;
   display: flex;

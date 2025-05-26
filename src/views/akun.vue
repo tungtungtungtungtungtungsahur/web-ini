@@ -26,8 +26,19 @@
 
     <div v-if="showLogoutConfirm" class="modal-overlay">
       <div class="modal-box">
-        <svg class="warning-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="#f44336" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0z" />
+        <svg
+          class="warning-icon"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="#f44336"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M12 9v2m0 4h.01M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0z"
+          />
         </svg>
         <h3>Keluar dari Akun?</h3>
         <p>Apakah Anda yakin ingin keluar dari akun ini?</p>
@@ -82,7 +93,7 @@ export default {
             const data = docSnap.data()
             name.value = data.name || ''
             handle.value = data.username || ''
-            photoURL.value = data.photoURL || photoURL.value
+            photoURL.value = data.profileImageUrl || photoURL.value
           }
         }
       })

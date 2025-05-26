@@ -136,11 +136,23 @@ export default defineComponent({
           }
           this.showSuccessModal = true
         } else {
-          this.verificationError = 'Format KTP tidak valid'
+          this.verificationError = 'Format KTP tidak valid. Silakan upload ulang.'
+          // Clear the image and file input
+          this.ktpPhoto = null
+          const fileInput = this.$refs.fileInput as HTMLInputElement
+          if (fileInput) {
+            fileInput.value = ''
+          }
         }
       } catch (error) {
         console.error('Verification error:', error)
         this.verificationError = 'Terjadi kesalahan. Silakan coba lagi.'
+        // Clear the image and file input on error
+        this.ktpPhoto = null
+        const fileInput = this.$refs.fileInput as HTMLInputElement
+        if (fileInput) {
+          fileInput.value = ''
+        }
       } finally {
         this.isLoading = false
       }
