@@ -212,22 +212,33 @@ const addToCart = async () => {
   // Check for duplicate
   const q = query(cartRef, where('productId', '==', product.value.id), where('sellerUsername', '==', sellerUsername))
   const existing = await getDocs(q)
-  if (!existing.empty) return // Prevent duplicate
+  if (!existing.empty) {
+    alert('Produk sudah ada di keranjang!')
+    return
+  }
 
-  // Add to cart
-  await addDoc(cartRef, {
-    productId: product.value.id,
-    name: product.value.name,
-    price: product.value.price,
-    images: product.value.images,
-    sellerId: product.value.sellerId,
-    sellerUsername,
-    seller: {
-      name: sellerName,
-      avatarUrl: sellerAvatar,
-    },
-    createdAt: serverTimestamp(),
-  })
+  try {
+    // Add to cart
+    await addDoc(cartRef, {
+      productId: product.value.id,
+      name: product.value.name,
+      price: product.value.price,
+      images: product.value.images,
+      sellerId: product.value.sellerId,
+      sellerUsername,
+      seller: {
+        name: sellerName,
+        avatarUrl: sellerAvatar,
+      },
+      createdAt: serverTimestamp(),
+    })
+    
+    alert('Produk berhasil ditambahkan ke keranjang!')
+    router.push('/cart') // Route to cart page after successful addition
+  } catch (error) {
+    console.error('Error adding to cart:', error)
+    alert('Gagal menambahkan produk ke keranjang')
+  }
 }
 </script>
 

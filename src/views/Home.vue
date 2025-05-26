@@ -148,6 +148,11 @@ onMounted(() => {
 const filteredProducts = computed(() => {
   let filtered = products.value
 
+  // Filter out products that belong to the current user
+  if (auth.currentUser) {
+    filtered = filtered.filter((p: Product) => p.sellerId !== auth.currentUser?.uid)
+  }
+
   if (selectedCategory.value !== 'Semua') {
     filtered = filtered.filter((p: Product) => p.category === selectedCategory.value)
   }
