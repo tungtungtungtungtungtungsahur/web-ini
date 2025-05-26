@@ -1,11 +1,6 @@
 <template>
     <div class="edit-product-container">
-      <!-- Header (outside form-wrapper) -->
-      <div class="header">
-        <span class="back-arrow" @click="closeForm">&leftarrow;</span>
-        <h2>Edit Produk</h2>
-      </div>
-
+      <AppBar />
       <div class="form-wrapper">
         <!-- Upload Foto -->
         <div class="photo-upload">
@@ -149,9 +144,13 @@
   import { db, auth, storage } from '../firebase';
   import { doc, getDoc, setDoc } from 'firebase/firestore';
   import { uploadBytes, ref as storageRef, getDownloadURL, deleteObject } from 'firebase/storage';
+  import AppBar from '@/components/AppBar.vue';
 
   export default defineComponent({
-    name: 'EditDetailProduk', // Renamed component name
+    name: 'EditDetailProduk',
+    components: {
+      AppBar
+    },
     setup() {
       const route = useRoute();
       const router = useRouter();
