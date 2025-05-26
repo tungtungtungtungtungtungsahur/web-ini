@@ -51,6 +51,7 @@ onMounted(() => {
   overflow-y: auto;
   background-color: #f9f9f9;
   padding: 20px;
+  padding-top: 88px;
 }
 
 .full-width {
