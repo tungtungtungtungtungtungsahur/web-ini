@@ -32,7 +32,7 @@
           <div class="chat-info">
             <div class="chat-header">
               <h3>{{ chat.otherUser.name }}</h3>
-              <span class="timestamp">{{ formatTime(chat.lastMessage?.timestamp) }}</span>
+              <span class="timestamp">{{ formatTime(chat.lastMessageTime) }}</span>
             </div>
             <div class="chat-preview">
               <p class="message-preview">{{ chat.lastMessage?.message || 'Belum ada pesan' }}</p>
@@ -83,6 +83,9 @@ interface Chat {
     price: number
     images: string[]
   }
+  lastMessageTime: {
+    toDate: () => Date
+  }
 }
 
 export default defineComponent({
@@ -105,28 +108,22 @@ export default defineComponent({
       )
     })
 
-    const formatTime = (timestamp: Chat['lastMessage']['timestamp']) => {
+    const formatTime = (timestamp: Chat['lastMessageTime']) => {
       if (!timestamp) return ''
       const date = timestamp.toDate()
       const now = new Date()
       const diff = now.getTime() - date.getTime()
       const days = Math.floor(diff / (1000 * 60 * 60 * 24))
 
-      if (days === 0) {
-        return date.toLocaleTimeString('id-ID', {
-          hour: '2-digit',
-          minute: '2-digit'
-        })
-      } else if (days === 1) {
-        return 'Kemarin'
-      } else if (days < 7) {
-        return date.toLocaleDateString('id-ID', { weekday: 'long' })
+      if (days > 0) {
+        const weekdays = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
+        return weekdays[date.getDay()]
+      } else if (diff > 3600000) { // More than 1 hour
+        return `${Math.floor(diff / 3600000)}j`
+      } else if (diff > 60000) { // More than 1 minute
+        return `${Math.floor(diff / 60000)}m`
       } else {
-        return date.toLocaleDateString('id-ID', {
-          day: '2-digit',
-          month: '2-digit',
-          year: '2-digit'
-        })
+        return 'Baru saja'
       }
     }
 
@@ -159,7 +156,8 @@ export default defineComponent({
         const chatsRef = collection(db, 'chats')
         const q = query(
           chatsRef,
-          where('participants', 'array-contains', currentUser.uid)
+          where('participants', 'array-contains', currentUser.uid),
+          orderBy('lastMessageTime', 'desc')
         )
 
         unsubscribe = onSnapshot(q, async (snapshot) => {
@@ -192,11 +190,6 @@ export default defineComponent({
               }
             }
 
-            let unreadCount = 0
-            if (chatData.lastMessage && !chatData.lastMessage.read && chatData.lastMessage.senderId !== currentUser.uid) {
-              unreadCount = 1
-            }
-
             return {
               id: docSnapshot.id,
               otherUser: {
@@ -206,7 +199,8 @@ export default defineComponent({
                 avatarUrl: otherUser?.avatarUrl
               },
               lastMessage: chatData.lastMessage,
-              unreadCount,
+              lastMessageTime: chatData.lastMessageTime,
+              unreadCount: chatData.unreadCount || 0,
               productId: chatData.productId,
               productInfo
             }

@@ -319,58 +319,6 @@ export default defineComponent({
       }
     }
 
-    const sendMessage = async () => {
-      if (!newMessage.value.trim() || !currentUser || sending.value) return
-
-      sending.value = true
-      const messageText = newMessage.value.trim()
-      newMessage.value = ''
-
-      try {
-        const chatRef = doc(db, 'chats', chatId.value)
-        const chatDoc = await getDoc(chatRef)
-
-        const messageData = {
-          senderId: currentUser.uid,
-          message: messageText,
-          timestamp: serverTimestamp(),
-          read: false
-        }
-
-        await addDoc(collection(db, 'chats', chatId.value, 'messages'), messageData)
-
-        if (!chatDoc.exists()) {
-          await setDoc(chatRef, {
-            participants: [currentUser.uid, receiver.value.id],
-            productId: route.params.productId || '',
-            lastMessage: {
-              message: messageText,
-              timestamp: serverTimestamp(),
-              read: false,
-              senderId: currentUser.uid
-            },
-            unreadCount: 1
-          })
-        } else {
-          await updateDoc(chatRef, {
-            lastMessage: {
-              message: messageText,
-              timestamp: serverTimestamp(),
-              read: false,
-              senderId: currentUser.uid
-            },
-            unreadCount: increment(1)
-          })
-        }
-      } catch (err) {
-        console.error('Error sending message:', err)
-        error.value = 'Gagal mengirim pesan. Silakan coba lagi.'
-        newMessage.value = messageText
-      } finally {
-        sending.value = false
-      }
-    }
-
     const initializeChat = async () => {
       loading.value = true
       error.value = ''
@@ -397,11 +345,25 @@ export default defineComponent({
         }
 
         const users = [currentUser?.uid, receiverId].sort()
-        chatId.value = `${users[0]}_${users[1]}_${productId || ''}`
+        const productName = productInfo.value?.name || ''
+        chatId.value = users.length >= 2
+          ? `${users.join('_')}_${productId || productName.hashCode()}`
+          : Date.now().toString()
+
+        const chatDoc = await getDoc(doc(db, 'chats', chatId.value))
+        if (!chatDoc.exists()) {
+          await setDoc(doc(db, 'chats', chatId.value), {
+            participants: users,
+            productInfo: productInfo.value,
+            lastMessage: '',
+            lastMessageTime: serverTimestamp(),
+            createdAt: serverTimestamp()
+          })
+        }
 
         const q = query(
           collection(db, 'chats', chatId.value, 'messages'),
-          orderBy('timestamp', 'asc')
+          orderBy('timestamp', 'desc')
         )
 
         unsubscribe = onSnapshot(q, (snapshot) => {
@@ -419,6 +381,38 @@ export default defineComponent({
         error.value = err instanceof Error ? err.message : 'Terjadi kesalahan saat memuat chat'
       } finally {
         loading.value = false
+      }
+    }
+
+    const sendMessage = async () => {
+      if (!newMessage.value.trim() || !currentUser || sending.value) return
+
+      sending.value = true
+      const messageText = newMessage.value.trim()
+      newMessage.value = ''
+
+      try {
+        const messageData = {
+          senderId: currentUser.uid,
+          receiverId: receiver.value.id,
+          message: messageText,
+          timestamp: serverTimestamp(),
+          read: false,
+          productInfo: productInfo.value
+        }
+
+        await addDoc(collection(db, 'chats', chatId.value, 'messages'), messageData)
+
+        await updateDoc(doc(db, 'chats', chatId.value), {
+          lastMessage: messageText,
+          lastMessageTime: serverTimestamp()
+        })
+      } catch (err) {
+        console.error('Error sending message:', err)
+        error.value = 'Gagal mengirim pesan. Silakan coba lagi.'
+        newMessage.value = messageText
+      } finally {
+        sending.value = false
       }
     }
 
