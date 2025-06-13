@@ -264,6 +264,15 @@ interface LeafletEvent {
   }
 }
 
+function simpleHash(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+}
+
 export default defineComponent({
   name: 'ChatDetail',
   setup() {
@@ -347,7 +356,7 @@ export default defineComponent({
         const users = [currentUser?.uid, receiverId].sort()
         const productName = productInfo.value?.name || ''
         chatId.value = users.length >= 2
-          ? `${users.join('_')}_${productId || productName.hashCode()}`
+          ? `${users.join('_')}_${productId || simpleHash(productName)}`
           : Date.now().toString()
 
         const chatDoc = await getDoc(doc(db, 'chats', chatId.value))
