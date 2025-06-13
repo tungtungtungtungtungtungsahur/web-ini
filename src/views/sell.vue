@@ -319,7 +319,7 @@ export default defineComponent({
 
         await addDoc(collection(db, 'products'), {
           sellerId: user.uid,
-          sellerUsername: user.username,
+          sellerUsername: sellerUsername,
           name: this.productName,
           description: this.description,
           category: this.category,

@@ -4,7 +4,7 @@
     <div class="main-container">
       <section class="profile-section" v-if="!selectedProduct">
         <div class="profile-image">
-          <img :src="profileImageUrl" alt="Profile Picture">
+          <img :src="profileImageUrl" alt="Profile Picture" />
         </div>
         <div class="profile-info">
           <h2>{{ name }}</h2>
@@ -16,13 +16,13 @@
       <div class="tab-box">
         <nav class="tabs" v-if="!selectedProduct">
           <button
-            :class="{ 'tab-button': true, 'active': activeTab === 'Barang' }"
+            :class="{ 'tab-button': true, active: activeTab === 'Barang' }"
             @click="activeTab = 'Barang'"
           >
             Barang
           </button>
           <button
-            :class="{ 'tab-button': true, 'active': activeTab === 'Tentang' }"
+            :class="{ 'tab-button': true, active: activeTab === 'Tentang' }"
             @click="activeTab = 'Tentang'"
           >
             Tentang
@@ -32,7 +32,11 @@
         <section class="barang-section" v-if="activeTab === 'Barang' && !selectedProduct">
           <div class="barang-list">
             <div class="barang-item" v-for="product in userProducts" :key="product.id">
-              <img :src="product.images[0] || '/placeholder.png'" alt="Product Image" class="product-image">
+              <img
+                :src="product.images[0] || '/placeholder.png'"
+                alt="Product Image"
+                class="product-image"
+              />
               <div class="product-details">
                 <div class="product-info">
                   <h3>{{ product.name }}</h3>
@@ -88,7 +92,9 @@
           <div class="info-container" v-else>
             <div class="no-data-content">
               <p>Tidak terdapat informasi terkait toko ini</p>
-              <button class="fill-data-btn" @click="$router.push('/BioDataToko')">Isi Biodata Toko</button>
+              <button class="fill-data-btn" @click="$router.push('/BioDataToko')">
+                Isi Biodata Toko
+              </button>
             </div>
           </div>
         </section>
@@ -96,13 +102,17 @@
 
       <section class="product-detail-section" v-if="selectedProduct">
         <div class="product-images">
-          <div v-for="(image, index) in selectedProduct.images" :key="index" class="product-image-item">
+          <div
+            v-for="(image, index) in selectedProduct.images"
+            :key="index"
+            class="product-image-item"
+          >
             <img
               :src="image || '/placeholder.png'"
               :alt="`${selectedProduct.name} - ${index + 1}`"
               @error="handleImageError"
               @click="openImageModal(image || '/placeholder.png')"
-            >
+            />
           </div>
         </div>
         <div class="detail-content">
@@ -136,7 +146,7 @@
 
       <div class="image-modal-overlay" v-if="showImageModal" @click="closeImageModal"></div>
       <div class="image-modal-container" v-if="showImageModal">
-        <img :src="currentZoomImageUrl" alt="Zoomed Image" class="zoomed-image">
+        <img :src="currentZoomImageUrl" alt="Zoomed Image" class="zoomed-image" />
       </div>
     </div>
   </div>
@@ -148,10 +158,22 @@ import { auth, db } from '../firebase'
 import { doc, getDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
 
+interface Product {
+  id: string
+  name: string
+  price: number
+  images: string[]
+  description: string
+  category: string
+  condition: string
+  style: string
+  [key: string]: any
+}
+
 export default {
   name: 'AkunTokoSisiPenjual',
   components: {
-    AppBar
+    AppBar,
   },
   data() {
     return {
@@ -166,122 +188,139 @@ export default {
       storeContact: '',
       storeOperatingHours: '',
       hasStoreData: false,
-      userProducts: [],
-      selectedProduct: null,
+      userProducts: [] as Product[],
+      selectedProduct: null as null | Product,
       showDeleteModal: false,
-      productToDelete: null,
+      productToDelete: null as null | Product,
       showImageModal: false,
       currentZoomImageUrl: '',
-    };
+    }
   },
   created() {
     if (this.$route.query.tab === 'Barang') {
-      this.activeTab = 'Barang';
+      this.activeTab = 'Barang'
     }
 
     onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const userRef = doc(db, 'users', user.uid);
-        const userSnap = await getDoc(userRef);
+        const userRef = doc(db, 'users', user.uid)
+        const userSnap = await getDoc(userRef)
 
         if (userSnap.exists()) {
-          const userData = userSnap.data();
-          this.name = userData.name || '';
-          this.username = userData.username || '';
-          this.profileImageUrl = userData.profileImageUrl || 'https://via.placeholder.com/100';
+          const userData = userSnap.data()
+          this.name = userData.name || ''
+          this.username = userData.username || ''
+          this.profileImageUrl = userData.profileImageUrl || 'https://via.placeholder.com/100'
         }
 
-        const storeRef = doc(db, 'stores', user.uid);
-        const storeSnap = await getDoc(storeRef);
+        // Fetch toko biodata from 'toko' collection
+        const tokoRef = doc(db, 'toko', user.uid)
+        const tokoSnap = await getDoc(tokoRef)
 
-        if (storeSnap.exists()) {
-          const storeData = storeSnap.data();
-          this.storeDescription = storeData.description || '';
-          this.location = storeData.location || '-';
-          this.storeCategories = storeData.categories || '';
-          this.storeContact = storeData.contact || '';
-          this.storeOperatingHours = storeData.operatingHours || '';
-          this.hasStoreData = true;
+        if (tokoSnap.exists()) {
+          const tokoData = tokoSnap.data()
+          this.storeDescription = tokoData.deskripsi || ''
+          this.location = tokoData.lokasi || '-'
+          this.storeCategories = (tokoData.kategori && tokoData.kategori.join(', ')) || ''
+          this.storeContact = tokoData.kontak || ''
+          this.storeOperatingHours = tokoData.jamOperasional || ''
+          this.hasStoreData = true
         } else {
-          this.hasStoreData = false;
-          this.location = '-';
+          this.hasStoreData = false
+          this.location = '-'
         }
 
-        this.fetchUserProducts(user.uid);
+        this.fetchUserProducts(user.uid)
       }
-    });
+    })
   },
   methods: {
-    async fetchUserProducts(userId) {
+    async fetchUserProducts(userId: string) {
       try {
-        const productsCollection = collection(db, 'products');
-        const userProductsQuery = query(productsCollection, where('sellerId', '==', userId));
-        const querySnapshot = await getDocs(userProductsQuery);
+        const productsCollection = collection(db, 'products')
+        const userProductsQuery = query(productsCollection, where('sellerId', '==', userId))
+        const querySnapshot = await getDocs(userProductsQuery)
 
-        this.userProducts = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        console.log('Fetched user products:', this.userProducts);
+        this.userProducts = querySnapshot.docs.map((doc) => {
+          const data = doc.data() as Partial<Product>
+          return {
+            id: doc.id,
+            name: data.name || '',
+            price: data.price || 0,
+            images: data.images || [],
+            description: data.description || '',
+            category: data.category || '',
+            condition: data.condition || '',
+            style: data.style || '',
+            ...data,
+          } as Product
+        })
         // Log images array for each user product to debug
-        this.userProducts.forEach(product => {
-          console.log(`User Product ${product.id} images:`, product.images);
-        });
+        this.userProducts.forEach((product) => {
+          console.log(`User Product ${product.id} images:`, product.images)
+        })
       } catch (error) {
-        console.error('Error fetching user products:', error);
+        console.error('Error fetching user products:', error)
       }
     },
-    viewProductDetail(product) {
-      console.log('Viewing product detail for:', product);
-      this.selectedProduct = product;
-      this.$router.push({ name: 'editDetailProduk', params: { productId: product.id } });
+    viewProductDetail(product: Product) {
+      console.log('Viewing product detail for:', product)
+      this.selectedProduct = product
+      this.$router.push({ name: 'editDetailProduk', params: { productId: product.id } })
     },
     goBack() {
-      this.$router.push('/akun');
+      this.$router.push('/akun')
     },
     editProduct() {
-      this.$router.push({ name: 'editDetailProduk', params: { productId: this.selectedProduct.id } });
+      if (this.selectedProduct) {
+        this.$router.push({
+          name: 'editDetailProduk',
+          params: { productId: this.selectedProduct.id },
+        })
+      }
     },
-    deleteProduct(product) {
-      this.productToDelete = product;
-      this.showDeleteModal = true;
+    deleteProduct(product: Product) {
+      this.productToDelete = product
+      this.showDeleteModal = true
     },
     async confirmDelete() {
       try {
         if (this.productToDelete) {
           // Delete from Firestore
-          const productRef = doc(db, 'products', this.productToDelete.id);
-          await deleteDoc(productRef);
-          
+          const productRef = doc(db, 'products', this.productToDelete.id)
+          await deleteDoc(productRef)
+
           // Update local state
-          this.userProducts = this.userProducts.filter(product => product.id !== this.productToDelete.id);
-          this.selectedProduct = null;
-          this.showDeleteModal = false;
-          this.productToDelete = null;
-          
-          alert('Produk berhasil dihapus!');
+          this.userProducts = this.userProducts.filter(
+            (product) => product.id !== this.productToDelete!.id,
+          )
+          this.selectedProduct = null
+          this.showDeleteModal = false
+          this.productToDelete = null
+
+          alert('Produk berhasil dihapus!')
         }
       } catch (error) {
-        console.error('Error deleting product:', error);
-        alert('Gagal menghapus produk. Silakan coba lagi.');
+        console.error('Error deleting product:', error)
+        alert('Gagal menghapus produk. Silakan coba lagi.')
       }
     },
     cancelDelete() {
-      this.showDeleteModal = false;
-      this.productToDelete = null;
+      this.showDeleteModal = false
+      this.productToDelete = null
     },
-    handleImageError(event) {
-      event.target.src = '/placeholder.png';
+    handleImageError(event: Event) {
+      ;(event.target as HTMLImageElement).src = '/placeholder.png'
     },
-    openImageModal(imageUrl) {
-      this.currentZoomImageUrl = imageUrl;
-      this.showImageModal = true;
+    openImageModal(imageUrl: string) {
+      this.currentZoomImageUrl = imageUrl
+      this.showImageModal = true
     },
     closeImageModal() {
-      this.showImageModal = false;
-      this.currentZoomImageUrl = '';
+      this.showImageModal = false
+      this.currentZoomImageUrl = ''
     },
-  }
+  },
 }
 </script>
 
@@ -347,16 +386,17 @@ export default {
 }
 
 .header-icons {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-left: auto;
 }
 
-.edit-icon-header, .delete-icon-header {
-    font-size: 1.2em;
-    color: white;
-    cursor: pointer;
+.edit-icon-header,
+.delete-icon-header {
+  font-size: 1.2em;
+  color: white;
+  cursor: pointer;
 }
 
 body {
@@ -364,7 +404,6 @@ body {
   padding: 0;
   font-family: 'Arial', sans-serif;
   background-color: #f8f8f8;
-
 }
 
 #app {
@@ -379,7 +418,7 @@ body {
   margin: 10px 0 20px 0;
   background-color: #fff;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .profile-image img {
@@ -392,8 +431,8 @@ body {
 }
 
 .profile-info {
-    flex-grow: 1;
-    color: #333;
+  flex-grow: 1;
+  color: #333;
 }
 
 .profile-info h2 {
@@ -444,13 +483,13 @@ body {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   padding-top: 12px;
-   padding-bottom: 0;
+  padding-bottom: 0;
 }
 
 .tab-box {
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   margin-bottom: 32px;
   padding: 16px 24px 24px 24px;
 }
@@ -467,7 +506,7 @@ body {
 }
 
 .tab-button:hover {
-    color: #333;
+  color: #333;
 }
 
 .tab-button.active {
@@ -485,7 +524,8 @@ body {
   background-color: #000;
 }
 
-.tentang-section, .barang-section {
+.tentang-section,
+.barang-section {
   background: none;
   border-radius: 0;
   box-shadow: none;
@@ -573,60 +613,62 @@ body {
 }
 
 .product-image {
-    width: 100%;
-    height: 100px;
-    object-fit: cover;
-    border-radius: 4px;
-    margin-bottom: 30px;
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-bottom: 30px;
 }
 
 .product-details {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    width: 100%;
-    flex-grow: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+  flex-grow: 1;
 }
 
 .product-info {
-    flex-grow: 1;
+  flex-grow: 1;
 }
 
 .product-info h3 {
-    margin: 0 0 5px 0;
-    font-size: 1em;
-    font-weight: normal;
-    color: #333;
+  margin: 0 0 5px 0;
+  font-size: 1em;
+  font-weight: normal;
+  color: #333;
 }
 
 .product-info p {
-    margin: 0;
-    font-size: 0.9em;
-    color: #555;
+  margin: 0;
+  font-size: 0.9em;
+  color: #555;
 }
 
 .action-icons {
-    display: flex;
-    gap: 10px;
-    align-items: center;
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
-.edit-icon, .delete-icon {
-    font-size: 1.2em;
-    cursor: pointer;
-    transition: transform 0.2s ease;
+.edit-icon,
+.delete-icon {
+  font-size: 1.2em;
+  cursor: pointer;
+  transition: transform 0.2s ease;
 }
 
 .edit-icon {
-    color: #007bff;
+  color: #007bff;
 }
 
 .delete-icon {
-    color: #dc3545;
+  color: #dc3545;
 }
 
-.edit-icon:hover, .delete-icon:hover {
-    transform: scale(1.1);
+.edit-icon:hover,
+.delete-icon:hover {
+  transform: scale(1.1);
 }
 
 .product-detail-section {
@@ -772,9 +814,9 @@ body {
 }
 
 @media (min-width: 768px) {
-    .barang-item {
-        flex-basis: calc(25% - 11.25px);
-    }
+  .barang-item {
+    flex-basis: calc(25% - 11.25px);
+  }
 }
 
 .image-modal-overlay {
